@@ -1,0 +1,21 @@
+List below - in the planned order you will implement them (first at the top) - your ideas for how you will make your mechanical turk behave.  Give brief reasons why you think each feature is important, and why you have chosen to implement them in this order.
+
+1. Mr Pass - starts spinoff if has resources, otherwise passes.  Why first? This is required to be the first Turk everyone submits.
+2. Build ARC to the closest intersection of BPS and BQN - The main types of students that are hard to produce and they don't get wiped on the score 7.
+3. Retrain students until you have 1 of each to build a campus at that intersection - Patience, don't waste students on ARCs
+4. Build ARC to the closest intersection of MTV/MMoney/Mj intersection - Get some variety so that it will be easier to upgrade campuses
+5. Retrain students until you have 1 of each to build a campus at that intersection
+6. Start spinoffs whenever possible - Our AI is ok at this point, let's keep it farming stuff.
+7. Make ARC from BPS/BQN campus in step.2 so that you are still on some intersection and build campus - More advanced moves to expand campuses
+8. Make ARC from MTV/MMouney/Mj campus in step.4 so that you are still on some intersection and build campus - More advanced moves
+9. Rebuild G08 campuses in the same order as they were built in Steps 1-8. - More students means more KPIs
+10. Keep farming on spin-offs
+…
+
+Write below the plan you and your Turk Pair partner have devised to ensure you will be an effective team:
+
+We will:
+- Communicate the findings/ideas on OpenLearning to keep some history of our communication at a glance
+- Communicate via FB Messenger to resolve quick issues / remind each other of things
+- Sync documents via Dropbox
+- Work together in person each week
