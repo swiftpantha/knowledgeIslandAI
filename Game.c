@@ -890,7 +890,7 @@ static point pathToPoint(path givenPath) {
 
     int i = 0;
     while (givenPath[i] != '\0') {
-        printf("Path to point while loop entered\n");
+        //printf("Path to point while loop entered\n");
         if (!(givenPath[i] == 'L' || givenPath[i] == 'R'
             || givenPath[i] == 'B')) {
             newPoint.x = -1;
@@ -908,7 +908,7 @@ static point pathToPoint(path givenPath) {
                     diff = ROW_INC;
                 }
             }
-        printf("Path to point while loop finished\n");
+        //printf("Path to point while loop finished\n");
         }
         i++;
     }
@@ -917,7 +917,7 @@ static point pathToPoint(path givenPath) {
 
 // converts a given path to the edge's coordinates
 static edge pathToEdgeF(path givenPath) {
-    printf("Entered pathToEdgeF function\n");
+    //printf("Entered pathToEdgeF function\n");
     point newPoint;
     newPoint.x = 2;
     newPoint.y = 0;
@@ -925,7 +925,7 @@ static edge pathToEdgeF(path givenPath) {
 
     int i = 0;
     while (givenPath[i] != '\0') {
-        printf("Converting path to edge coords\n");
+        //printf("Converting path to edge coords\n");
         assert(givenPath[i] == 'L'
             || givenPath[i] == 'R'
             || givenPath[i] == 'B');

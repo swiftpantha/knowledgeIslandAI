@@ -9,11 +9,11 @@
  */
 
 #define START_1A "RL"
-#define START_2A "LRLRR"
-#define START_3A "LRLRLRRLRR"
-#define START_1B "LRLRLRRLRRLLRRR"
-#define START_2B "LRLRLRRLRRLLRRRLLRRR"
-#define START_3B "LRLRLRRLRRLLRRRLLRRRLLRRR"
+#define START_3A "LRLRRLLLLLL"
+#define START_2A "LRLRRLRLRLLLLL"
+#define START_1B "LRLRRLRLRRLRLLLLL"
+#define START_3B "LRLRRLRLRRLRRLRLLLLL"
+#define START_2B "LRLRRLRLRRLRRLRRLRLLLLL"
 
 #define POINT_A ""
 #define POINT_B "L"
@@ -22,6 +22,10 @@
 #define POINT_E "LRRR"
 #define POINT_F "LRRRR"
 
+#define FIRST_POINT 2
+#define FIRST_SIDE 1
+
+#define MAX_ATTEMPTS 20
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -55,13 +59,17 @@ char* stringParser(int player, int vertice, int point);
 //int resourceCheck(int a, int b, int c, int d, int e, int f);
 action dumbBuilding (path destination, Game g);
 Res getMyRes (Game g);
-void testSmartTrading (Game g);
 action enoughToTradeThree(action a, Res myRes, int kind);
 action enoughToTradeTwo(action a, Res myRes, int kind, int altRes, int altKind);
 action enoughToTradeOne(action a, Res myRes, int kind, int altRes, int altKind);
 void testStringParser(void);
+void testDumbBuilding(Game g);
+void testSmartTrading (Game g);
+
 
 action decideAction (Game g) {
+    int player = getWhoseTurn(g);
+    int attempts = 1;
     //int mj;
     //int mm;
     //int mtv;
@@ -71,17 +79,26 @@ action decideAction (Game g) {
     // mtv = getStudents (g, UNI_A, STUDENT_MTV);
     // if(mj >= 1 && mm >= 1 && mtv >= 1) {
     
-    nextAction.actionCode = START_SPINOFF;        
+    char *pathCampus = stringParser(player, FIRST_POINT, FIRST_SIDE);
     
     Res myRes;
     myRes = getMyRes(g);
-    // if we can't start a spinoff right now then use your head!
-    // LATER: smartbuilding etc. may be a priority over the start spinoff
-    // so we need to put them above this check
-    if (isLegalAction(g, nextAction) != TRUE) {
-        // thought 1: how about we smart trade?
-        nextAction = smartTrading(myRes, START_SPINOFF);
+    
+    //Here we build until we get x campuses then we smart trade for spin
+    if ((getCampus(g,pathCampus) != player) &&
+        //Though 1 We start buiilding
+        (attempts <= MAX_ATTEMPTS)) {
+        printf("Attempt: %d",attempts);
+        nextAction = dumbBuilding(pathCampus, g);
+    } else {
+        //Thought 2 We start spinning
+        nextAction.actionCode = START_SPINOFF;
+        if (isLegalAction(g, nextAction) != TRUE) {
+            // thought 1: how about we smart trade?
+            nextAction = smartTrading(myRes, START_SPINOFF);
+        }
     }
+    
     return nextAction;
 }
 
@@ -96,8 +113,9 @@ int main (int argc, char *argv[]) {
     
     printf("==== Tests start ====\n");
     
-    testStringParser();
-    testSmartTrading(testGame);
+    //testStringParser();
+    testDumbBuilding(testGame);
+    //testSmartTrading(testGame);
     
     printf ("All AI tests passed. You are awesome!\n");
 
@@ -305,42 +323,82 @@ action dumbTrading(int resource) {
 // Tries to progressively build a campus at the destination
 action dumbBuilding(path destination, Game g) {
     action nextAction;
+    int length = 0;
+    int player = getWhoseTurn(g);
+    int vertice = FIRST_POINT;
+    int counter = 0;
+    int end = 0;
+    int flag = TRUE;
+    
+    //Later decide if A or B is better
+    
+    //retrieve the path for the first arc that you need
+    length = (int) strlen(destination);
+    
+    //From the start of the path start going through and seeing if we
+    //own it.
+    while (flag == TRUE) {
+        end  = length - vertice + counter;
+        printf("\n#########\n");
+        printf("Building the road %d from destination\n", counter - vertice);
+        strcpy(nextAction.destination, destination);
+        nextAction.destination[end] = '\0';
+        nextAction.actionCode = OBTAIN_ARC;
+        //If we don't own it stop - we want to buy an arc.
+        if (getARC(g, nextAction.destination) != player) {
+            flag = FALSE;
+            printf("We don't own the arc: %s\n", nextAction.destination);
+        } else {
+            printf("Already Owned\n");
+        }
+        
+        if ((strlen(destination) == strlen(nextAction.destination))
+            && (getARC(g, nextAction.destination) == player)) {
+            nextAction.actionCode = BUILD_CAMPUS;
+            flag = FALSE;
+        }
+        counter++;
+    }
+
+
+    printf("Building ARC: %s\n",
+           nextAction.destination);
+    
     return nextAction;
 }
 
 // Gives you the path to the vertice for a given player.
-
 char* stringParser(int player, int vertice, int point) {
     char destination[PATH_LIMIT];
     int baselength = 0;
     int taillength = 0;
     
-    
+    //Effectively zeros the thing for each player
     if (point == 1){
         if (player == 1){
             strcpy(destination, START_1A);
-            baselength = 2;
+            baselength = strlen(START_1A);
         } else if (player == 2){
             strcpy(destination, START_2A);
-            baselength = 5;
+            baselength = strlen(START_2A);
         } else if (player == 3){
             strcpy(destination, START_3A);
-            baselength = 10;
+            baselength = strlen(START_3A);
         }
     } else if (point == 2){
         if (player == 1){
             strcpy(destination, START_1B);
-            baselength = 15;
+            baselength = strlen(START_1B);
         } else if (player == 2){
             strcpy(destination, START_2B);
-            baselength = 20;
+            baselength = strlen(START_2B);
         } else if (player == 3){
             strcpy(destination, START_3B);
-            baselength = 25;
+            baselength = strlen(START_3B);
         }
     }
-    printf("The Base is: %s\n", destination);
     
+    //Appends the vertice that we want to purchase
     if (vertice == 1) {
         strcpy(destination+baselength, POINT_A);
         taillength = 0;
@@ -374,10 +432,6 @@ char* stringParser(int player, int vertice, int point) {
 
 void testStringParser(void){
     printf("Starting the testing of String Parser\n");
-
-    printf("%s\n", stringParser(1, 1, 1));
-    printf("%s\n", stringParser(2, 1, 1));
-    
     assert(strcmp(stringParser(1, 1, 1), START_1A)==0);
     assert(strcmp(stringParser(2, 1, 1), START_2A)==0);
     assert(strcmp(stringParser(3, 1, 1), START_3A)==0);
@@ -397,9 +451,9 @@ void testStringParser(void){
                   "LRLRLRRLRRLLRRRLLRRRLLRRRLRRR")==0);
     assert(strcmp(stringParser(3, 6, 2),
                   "LRLRLRRLRRLLRRRLLRRRLLRRRLRRRR")==0);
+    printf("String Parser testing complete\n");
+
 }
-
-
  
 // Checks if we have resources
 /*int resourceCheck(Game g, int ThD, int BPS, int BQN,
@@ -428,6 +482,50 @@ Res getMyRes (Game g) {
     }
     return r;
 }
+
+void testDumbBuilding(Game g){
+    throwDice(g, 1);
+    throwDice(g, 1);
+    
+    action newAction;
+    int player = getWhoseTurn(g);
+    int attempts = 1;
+    
+    printf("Players %d's turn\n", player);
+    
+    char *pathCampus = stringParser(player, FIRST_POINT, FIRST_SIDE);
+    
+    //Initiate the current owner of the vertice
+    int owner = getCampus(g,pathCampus);
+    printf("Trying to get Campus at location: %s\n", pathCampus);
+    printf("Before owner: %d\n", getCampus(g,pathCampus));
+
+    //Repeatedly call this until that campus is ours!
+    while ((owner != player) && (attempts <= MAX_ATTEMPTS)) {
+        printf("Attempt: %d\n", attempts);
+        newAction = dumbBuilding(pathCampus, g);
+        printf("\nCurrent Owner of ARC: %d\n",
+               getARC(g,newAction.destination));
+        
+        if (isLegalAction(g, newAction)){
+            printf("Starting MakeAction %d\n", newAction.actionCode);
+            makeAction(g, newAction);
+            printf("Finished MakeAction\n");
+            if (newAction.actionCode == OBTAIN_ARC) {
+            printf("\nNew Owner of ARC: %d\n",
+                   getARC(g, newAction.destination));
+            } else if (newAction.actionCode == BUILD_CAMPUS) {
+                printf("\nNew Owner of Campus: %d\n",
+                       getARC(g, newAction.destination));
+            }
+        }
+        attempts++;
+        owner = getCampus(g,pathCampus);
+    }
+    
+    printf("\nAfter owner: %d\n", getCampus(g,pathCampus));
+}
+
 
 void testSmartTrading(Game g) {
     printf("testSmartTrading start\n");
