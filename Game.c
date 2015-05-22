@@ -21,11 +21,11 @@ Possible game struct
 #define NUM_DISCIPLINES 6
 #define MAX_REGIONS_PER_POINT 3
 
-#define START_DIFF 2
-#define COL_INC 0
-#define COL_DEC 1
-#define ROW_INC 2
-#define ROW_DEC 3
+#define START_DIFF 0
+#define COL_INC 1
+#define COL_DEC 2
+#define ROW_INC 3
+#define ROW_DEC 4
 
 #define TRUE 1
 #define FALSE 0
