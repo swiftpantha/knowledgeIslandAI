@@ -22,7 +22,7 @@
 #define POINT_E "LRRR"
 #define POINT_F "LRRRR"
 
-#define FIRST_POINT 2
+#define FIRST_POINT 1
 #define FIRST_SIDE 1
 
 #define MAX_ATTEMPTS 20
@@ -65,7 +65,7 @@ action enoughToTradeOne(action a, Res myRes, int kind, int altRes, int altKind);
 void testStringParser(void);
 void testDumbBuilding(Game g);
 void testSmartTrading (Game g);
-
+char* kindToName(int kind);
 
 action decideAction (Game g) {
     int player = getWhoseTurn(g);
@@ -113,9 +113,9 @@ int main (int argc, char *argv[]) {
     
     printf("==== Tests start ====\n");
     
-    //testStringParser();
+    testSmartTrading(testGame);
+    testStringParser();
     testDumbBuilding(testGame);
-    //testSmartTrading(testGame);
     
     printf ("All AI tests passed. You are awesome!\n");
 
@@ -145,6 +145,9 @@ action smartTrading (Res myRes, int actionCode) {
         // check if you can do trading to achieve 1 MJ, 1 MTV, 1 M$ in one go from now
         // BEHOLD! THE SPAGHETTI CODE IFS!!!
         
+        /* * *
+        * Enough to trade for three kinds
+        */
         // if none present - need to trade for three
         if(myRes->MTV < 1 && myRes->MMONEY < 1 && myRes->MJ < 1) {
             // trade for MJs first
@@ -152,11 +155,29 @@ action smartTrading (Res myRes, int actionCode) {
             // Note: after this action we will only have enough to trade 2
             // but there will be MJs now
         } 
+        
+        /* * *
+        * Enough to trade for two kinds
+        */
         // we have MJs but no MTVs and no MMONEYs
         else if(myRes->MJ >= 1 && myRes->MTV < 1 && myRes->MMONEY < 1) {
             // trade for MTVs first (no particular reason)
             nextAction = enoughToTradeTwo(nextAction, myRes, STUDENT_MTV, myRes->MJ, STUDENT_MJ); 
         }
+        // we have MTVs no MJs and no MMONEYs
+        else if(myRes->MTV >=1 && myRes->MJ < 1 && myRes->MMONEY < 1) {
+            // trade for MJs, may trade MTVs
+            nextAction = enoughToTradeTwo(nextAction, myRes, STUDENT_MJ, myRes->MTV, STUDENT_MTV);
+        }
+        // we have MMONEYs no MJs and no MTVs
+        else if(myRes->MMONEY >= 1 && myRes->MJ < 1 && myRes->MTV < 1) {
+            // trade for MJs, may trade MMONEYs
+            nextAction = enoughToTradeTwo(nextAction, myRes, STUDENT_MJ, myRes->MMONEY, STUDENT_MMONEY); 
+        }
+
+        /* * *
+        * Trading for one kind
+        */
         // we have MJs and MTVs and no MMONEYs
         else if(myRes->MJ >= 1 && myRes->MTV >= 1 && myRes->MMONEY < 1) {
             // trade for MMONEYs
@@ -176,7 +197,7 @@ action smartTrading (Res myRes, int actionCode) {
             }
         }
         // we have MTVs and MMONEYs but no MJs (suddenly)
-        else if(myRes->MJ < 1 && myRes->MMONEY >= 1 && myRes->MTV >= 1) {
+        else if(myRes->MTV >= 1 && myRes->MMONEY >= 1 && myRes->MJ < 1) {
             // trade for MJs
             nextAction = enoughToTradeOne(nextAction, myRes, STUDENT_MJ, myRes->MTV, STUDENT_MTV); 
             // not possible? try to use MMONEYs as alternative
@@ -184,31 +205,9 @@ action smartTrading (Res myRes, int actionCode) {
                 nextAction = enoughToTradeOne(nextAction, myRes, STUDENT_MJ, myRes->MMONEY, STUDENT_MMONEY); 
             }
         }
-        // we have MTVs no MMONEYs no MJs
-        else if(myRes->MJ < 1 && myRes->MMONEY < 1 && myRes->MTV >= 1) {
-            // trade for MJs
-            nextAction = enoughToTradeTwo(nextAction, myRes, STUDENT_MJ, myRes->MTV, STUDENT_MTV);
-        }
-        // we have MMONEYs no MTVs no MJs
-        else if(myRes->MJ < 1 && myRes->MMONEY >= 1 && myRes->MTV < 1) {
-            // trade for MJs
-            nextAction = enoughToTradeTwo(nextAction, myRes, STUDENT_MJ, myRes->MMONEY, STUDENT_MMONEY); 
-        }
         // if all else failed - we can't trade all of the stuff in one go yet
         if(nextAction.actionCode == PASS) {
             printf("> Can't trade in one go yet...\n");
-            // if you have enough MTVs - trade them for MJ
-            if(myRes->MTV >= 3) {
-                nextAction.actionCode = RETRAIN_STUDENTS;
-                nextAction.disciplineFrom = STUDENT_MTV;
-                nextAction.disciplineTo = STUDENT_MJ;
-            }
-            // if you have enough MMONEYs - trade them for MJ
-            else if(myRes->MMONEY >= 3) {
-                nextAction.actionCode = RETRAIN_STUDENTS;
-                nextAction.disciplineFrom = STUDENT_MMONEY;
-                nextAction.disciplineTo = STUDENT_MJ;
-            }
         } // endif PASS
     } // endif START_SPINOFF
 
@@ -217,7 +216,8 @@ action smartTrading (Res myRes, int actionCode) {
 
 // checks if there is enough resources to trade all three kinds
 action enoughToTradeThree(action a, Res myRes, int kind) {
-    printf("> Enough to trade three?");
+    printf("> Enough to trade three?\n");
+    printf("> Attempt to trade BPS, BQN for %s\n", kindToName(kind));
     if(
         (myRes->BPS >= 9) ||
         (myRes->BPS >= 6 && myRes->BQN >= 3) ||
@@ -245,10 +245,11 @@ action enoughToTradeThree(action a, Res myRes, int kind) {
     return a;
 }
 
-// checks if there is enough resources to trade all three kinds
+// checks if there is enough resources to trade two kinds
 // takes altRes and altKind to use alternative kind if BPS/BQN are not sufficient
 action enoughToTradeTwo(action a, Res myRes, int kind, int altRes, int altKind) {
-    printf("> Enough to trade two?");
+    printf("> Enough to trade two?\n");
+    printf("> Attempt to trade BPS, BQN or %s for %s\n", kindToName(altKind), kindToName(kind));
     if(
         // either has 6
         (myRes->BPS >= 6) ||
@@ -270,7 +271,8 @@ action enoughToTradeTwo(action a, Res myRes, int kind, int altRes, int altKind) 
             a.disciplineFrom = STUDENT_BQN;
         }
         // else, enough MJ? - trade them
-        else if(altRes >= 3) {
+        else if(altRes >= 4) {
+            printf("> %s >= 4\n", kindToName(altKind));
             a.disciplineFrom = altKind;
         }
         a.disciplineTo = kind;
@@ -287,22 +289,22 @@ action enoughToTradeTwo(action a, Res myRes, int kind, int altRes, int altKind) 
 // checks if there is enough to trade for one kind of students
 // takes altRes and altKind to use alternative kind if BPS/BQN are not sufficient
 action enoughToTradeOne(action a, Res myRes, int kind, int altRes, int altKind) {
+    printf("> Enough to trade for one?\n");
+    printf("> Attempt to trade BPS,BQN or %s for %s\n", kindToName(altKind), kindToName(kind));
+    a.actionCode = RETRAIN_STUDENTS;
     // enough BPS? - trade them
     if(myRes->BPS >= 3) {
         printf("> BPS >= 3\n");
-        a.actionCode = RETRAIN_STUDENTS;
         a.disciplineFrom = STUDENT_BPS;
     }
     // else, enough BQN? - trade them
     else if(myRes->BQN >= 3) {
         printf("> BPS >= 3\n");
-        a.actionCode = RETRAIN_STUDENTS;
         a.disciplineFrom = STUDENT_BQN;
     }
     // else, enough altRes? - trade them
-    else if(altRes >= 3) {
-        printf("> [%d] >= 3\n", altKind);
-        a.actionCode = RETRAIN_STUDENTS;
+    else if(altRes >= 4) {
+        printf("> %s >= 4\n", kindToName(altKind));
         a.disciplineFrom = altKind;
     }
     else {
@@ -435,26 +437,35 @@ void testStringParser(void){
     assert(strcmp(stringParser(1, 1, 1), START_1A)==0);
     assert(strcmp(stringParser(2, 1, 1), START_2A)==0);
     assert(strcmp(stringParser(3, 1, 1), START_3A)==0);
-    assert(strcmp(stringParser(1, 2, 1), "RLL")==0);
-    assert(strcmp(stringParser(2, 3, 1), "LRLRRLR")==0);
-    assert(strcmp(stringParser(3, 4, 1), "LRLRLRRLRRLRR")==0);
-    assert(strcmp(stringParser(3, 5, 1), "LRLRLRRLRRLRRR")==0);
-    assert(strcmp(stringParser(3, 6, 1), "LRLRLRRLRRLRRRR")==0);
     assert(strcmp(stringParser(1, 1, 2), START_1B)==0);
     assert(strcmp(stringParser(2, 1, 2), START_2B)==0);
     assert(strcmp(stringParser(3, 1, 2), START_3B)==0);
-    assert(strcmp(stringParser(1, 2, 2), "LRLRLRRLRRLLRRRL")==0);
-    assert(strcmp(stringParser(2, 3, 2), "LRLRLRRLRRLLRRRLLRRRLR")==0);
-    assert(strcmp(stringParser(3, 4, 2),
-                  "LRLRLRRLRRLLRRRLLRRRLLRRRLRR")==0);
-    assert(strcmp(stringParser(3, 5, 2),
-                  "LRLRLRRLRRLLRRRLLRRRLLRRRLRRR")==0);
-    assert(strcmp(stringParser(3, 6, 2),
-                  "LRLRLRRLRRLLRRRLLRRRLLRRRLRRRR")==0);
     printf("String Parser testing complete\n");
 
 }
- 
+char* kindToName(int kind) {
+    char *result = malloc(7); // MMONEY is the longest
+    if(kind == STUDENT_BPS) {
+        strcpy(result, "BPS");
+    }
+    else if(kind == STUDENT_BQN) {
+        strcpy(result, "BQN");
+    }
+    else if(kind == STUDENT_THD) {
+        strcpy(result, "THD");
+    }
+    else if(kind == STUDENT_MJ) {
+        strcpy(result, "MJ");
+    }
+    else if(kind == STUDENT_MTV) {
+        strcpy(result, "MTV");
+    }
+    else if(kind == STUDENT_MMONEY) {
+        strcpy(result, "MMONEY");
+    }
+    return result;
+}
+
 // Checks if we have resources
 /*int resourceCheck(Game g, int ThD, int BPS, int BQN,
     int MJ, int MTV, int MM) {
@@ -535,7 +546,7 @@ void testSmartTrading(Game g) {
     
     // START SPINOFF driven smart trading tests
     // Tests all situations by faking the amount of students
-    printf("Test 1 - have enough, should start spinoff\n");
+    printf("[Test 1] - have enough, should start spinoff\n");
     myRes->MJ = 1;
     myRes->MTV = 1;
     myRes->MMONEY = 1;
@@ -543,7 +554,7 @@ void testSmartTrading(Game g) {
     assert(newAction.actionCode == START_SPINOFF);
 
     // could trade BPS - but there is no point since you can't get 1-1-1 on this turn anyway
-    printf("Test 2 - not enough and no way to trade in one go, should PASS\n");
+    printf("[Test 2] - not enough and no way to trade in one go, should PASS\n");
     myRes->BPS = 4;
     myRes->BQN = 2;
     myRes->MJ = 0;
@@ -557,7 +568,7 @@ void testSmartTrading(Game g) {
     // 1 turn - trade BPS for MJ
     // 2 turn - trade BQN for MMONEY
     // 3 turn - spinoff
-    printf("Test 3 - Can trade all in this turn, start in order MJ->MTV->MMONEY\n");
+    printf("[Test 3] - Can trade all in this turn, start in order MJ->MTV->MMONEY\n");
     myRes->BPS = 3;
     myRes->BQN = 3;
     myRes->MJ = 0;
@@ -569,19 +580,19 @@ void testSmartTrading(Game g) {
     assert (newAction.disciplineTo == STUDENT_MJ);
 
     // LATER: should trade for something out of BPS/BQN/MJ we don't have supply of!
-    printf("Test 4 - can trade 3 MTV for anything, should trade for MJ \n");
+    printf("[Test 4] - has 4 MTV should trade for MMONEY \n");
     myRes->BPS = 0;
     myRes->BQN = 0;
     myRes->MJ = 2;
-    myRes->MTV = 3;
+    myRes->MTV = 4;
     myRes->MMONEY = 0;
     newAction = smartTrading (myRes, START_SPINOFF);
     assert (newAction.actionCode == RETRAIN_STUDENTS);
     assert (newAction.disciplineFrom == STUDENT_MTV);
-    assert (newAction.disciplineTo == STUDENT_MJ);
+    assert (newAction.disciplineTo == STUDENT_MMONEY);
 
     // if there are 7 MJs - we definitely have resources to trade for spinoff in one go
-    printf("Test 5 - Have 7 MJ, 0 MTV should trade for MTV\n");
+    printf("[Test 5] - Have 7 MJ, 0 MTV should trade for MTV\n");
     myRes->BPS = 0;
     myRes->BQN = 0;
     myRes->MJ = 1;
@@ -593,7 +604,7 @@ void testSmartTrading(Game g) {
     assert (newAction.disciplineTo == STUDENT_MMONEY);
 
     // can't get in one go - just PASS
-    printf("Test 6 - Have 3 MJ, 0 MTV, 0 MMONEY should PASS\n");
+    printf("[Test 6] - Have 3 MJ, 0 MTV, 0 MMONEY should PASS\n");
     myRes->BPS = 0;
     myRes->BQN = 0;
     myRes->MJ = 3;
