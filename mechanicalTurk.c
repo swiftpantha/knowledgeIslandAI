@@ -7,10 +7,26 @@
  *  Share Freely Creative Commons SA-BY-NC 3.0. 
  *
  */
- 
+
+#define START_1A "RL"
+#define START_2A "LRLRR"
+#define START_3A "LRLRLRRLRR"
+#define START_1B "LRLRLRRLRRLLRRR"
+#define START_2B "LRLRLRRLRRLLRRRLLRRR"
+#define START_3B "LRLRLRRLRRLLRRRLLRRRLLRRR"
+
+#define POINT_A ""
+#define POINT_B "L"
+#define POINT_C "LR"
+#define POINT_D "LRR"
+#define POINT_E "LRRR"
+#define POINT_F "LRRRR"
+
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
+#include <string.h>
  
 #include "Game.h"
 #include "mechanicalTurk.h"
@@ -35,7 +51,7 @@ typedef struct _res * Res; // pointer to a _res struct
 
 action smartTrading (Res myRes, int actionCode);
 action dumbTrading (int resource);
-char* stringParser(int player, int vertice);
+char* stringParser(int player, int vertice, int point);
 //int resourceCheck(int a, int b, int c, int d, int e, int f);
 action dumbBuilding (path destination, Game g);
 Res getMyRes (Game g);
@@ -43,6 +59,7 @@ void testSmartTrading (Game g);
 action enoughToTradeThree(action a, Res myRes, int kind);
 action enoughToTradeTwo(action a, Res myRes, int kind, int altRes, int altKind);
 action enoughToTradeOne(action a, Res myRes, int kind, int altRes, int altKind);
+void testStringParser(void);
 
 action decideAction (Game g) {
     //int mj;
@@ -72,11 +89,14 @@ int main (int argc, char *argv[]) {
     
     int disciplines[] = DEFAULT_DISCIPLINES;
     int diceScores[] = DEFAULT_DICE;
+    
+    
     //Create a new game to test on
     Game testGame = newGame (disciplines, diceScores);
     
     printf("==== Tests start ====\n");
     
+    testStringParser();
     testSmartTrading(testGame);
     
     printf ("All AI tests passed. You are awesome!\n");
@@ -289,27 +309,98 @@ action dumbBuilding(path destination, Game g) {
 }
 
 // Gives you the path to the vertice for a given player.
-/*
-char* stringParser(int player, int vertice) {
-    char destination[] = {'R', 'L'};
-    
-    TODO Moss: fails to compile
-    
-    if ((player  == 1) && (vertice == 1)) {
-        char destination[] = {'R', 'L'};
-    }
-    if ((player  == 3) && (vertice == 1)) {
-        char destination[] = {'L', 'R', 'L', 'R', 'R'};
-    }
-    // Supplies Position
-    if ((player  == 3) && (vertice == 1)) {
-        char destination[] = {'L', 'R', 'L', 'R', 'L', 'R', 'R', 'L', 'R', 'R'};
-    }
-    
-    return destination;
-}
-*/
 
+char* stringParser(int player, int vertice, int point) {
+    char destination[PATH_LIMIT];
+    int baselength = 0;
+    int taillength = 0;
+    
+    
+    if (point == 1){
+        if (player == 1){
+            strcpy(destination, START_1A);
+            baselength = 2;
+        } else if (player == 2){
+            strcpy(destination, START_2A);
+            baselength = 5;
+        } else if (player == 3){
+            strcpy(destination, START_3A);
+            baselength = 10;
+        }
+    } else if (point == 2){
+        if (player == 1){
+            strcpy(destination, START_1B);
+            baselength = 15;
+        } else if (player == 2){
+            strcpy(destination, START_2B);
+            baselength = 20;
+        } else if (player == 3){
+            strcpy(destination, START_3B);
+            baselength = 25;
+        }
+    }
+    printf("The Base is: %s\n", destination);
+    
+    if (vertice == 1) {
+        strcpy(destination+baselength, POINT_A);
+        taillength = 0;
+    } else if (vertice == 2) {
+        strcpy(destination+baselength, POINT_B);
+        taillength = 1;
+    } else if (vertice == 3) {
+        strcpy(destination+baselength, POINT_C);
+        taillength = 2;
+    } else if (vertice == 4) {
+        strcpy(destination+baselength, POINT_D);
+        taillength = 3;
+    } else if (vertice == 5) {
+        strcpy(destination+baselength, POINT_E);
+        taillength = 4;
+    } else if (vertice == 6) {
+        strcpy(destination+baselength, POINT_F);
+        taillength = 5;
+
+    }
+    
+    printf("The entire path is: %s\n", destination);
+
+    
+    char *result = malloc(baselength + taillength + 1);
+    
+    strcpy(result, destination);
+    
+    return result;
+}
+
+void testStringParser(void){
+    printf("Starting the testing of String Parser\n");
+
+    printf("%s\n", stringParser(1, 1, 1));
+    printf("%s\n", stringParser(2, 1, 1));
+    
+    assert(strcmp(stringParser(1, 1, 1), START_1A)==0);
+    assert(strcmp(stringParser(2, 1, 1), START_2A)==0);
+    assert(strcmp(stringParser(3, 1, 1), START_3A)==0);
+    assert(strcmp(stringParser(1, 2, 1), "RLL")==0);
+    assert(strcmp(stringParser(2, 3, 1), "LRLRRLR")==0);
+    assert(strcmp(stringParser(3, 4, 1), "LRLRLRRLRRLRR")==0);
+    assert(strcmp(stringParser(3, 5, 1), "LRLRLRRLRRLRRR")==0);
+    assert(strcmp(stringParser(3, 6, 1), "LRLRLRRLRRLRRRR")==0);
+    assert(strcmp(stringParser(1, 1, 2), START_1B)==0);
+    assert(strcmp(stringParser(2, 1, 2), START_2B)==0);
+    assert(strcmp(stringParser(3, 1, 2), START_3B)==0);
+    assert(strcmp(stringParser(1, 2, 2), "LRLRLRRLRRLLRRRL")==0);
+    assert(strcmp(stringParser(2, 3, 2), "LRLRLRRLRRLLRRRLLRRRLR")==0);
+    assert(strcmp(stringParser(3, 4, 2),
+                  "LRLRLRRLRRLLRRRLLRRRLLRRRLRR")==0);
+    assert(strcmp(stringParser(3, 5, 2),
+                  "LRLRLRRLRRLLRRRLLRRRLLRRRLRRR")==0);
+    assert(strcmp(stringParser(3, 6, 2),
+                  "LRLRLRRLRRLLRRRLLRRRLLRRRLRRRR")==0);
+}
+
+
+ 
 // Checks if we have resources
 /*int resourceCheck(Game g, int ThD, int BPS, int BQN,
     int MJ, int MTV, int MM) {
