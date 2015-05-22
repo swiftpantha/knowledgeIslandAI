@@ -25,7 +25,7 @@
 #define FIRST_POINT 1
 #define FIRST_SIDE 1
 
-#define MAX_ATTEMPTS 20
+#define MAX_ATTEMPTS 5
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -102,6 +102,7 @@ action decideAction (Game g) {
     return nextAction;
 }
 
+/*
 int main (int argc, char *argv[]) {
     
     int disciplines[] = DEFAULT_DISCIPLINES;
@@ -121,6 +122,7 @@ int main (int argc, char *argv[]) {
 
     return EXIT_SUCCESS;
 }
+*/
 
 // Trades Only whenever enough to complete action succesfully
 action smartTrading (Res myRes, int actionCode) {
@@ -357,6 +359,7 @@ action dumbBuilding(path destination, Game g) {
         if ((strlen(destination) == strlen(nextAction.destination))
             && (getARC(g, nextAction.destination) == player)) {
             nextAction.actionCode = BUILD_CAMPUS;
+            printf("Trying to Build Campus\n");
             flag = FALSE;
         }
         counter++;
@@ -497,11 +500,12 @@ Res getMyRes (Game g) {
 void testDumbBuilding(Game g){
     throwDice(g, 1);
     throwDice(g, 1);
+    throwDice(g, 1);
     
     action newAction;
     int player = getWhoseTurn(g);
     int attempts = 1;
-    
+    printf("\n\n======= TESTING DUMB BUILD =========\n");
     printf("Players %d's turn\n", player);
     
     char *pathCampus = stringParser(player, FIRST_POINT, FIRST_SIDE);
