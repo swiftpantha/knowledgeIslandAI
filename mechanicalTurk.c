@@ -107,6 +107,9 @@ action smartTrading (Res myRes, int actionCode) {
         // check if you can do trading to achieve 1 MJ, 1 MTV, 1 M$ in one go from now
         // BEHOLD! THE SPAGHETTI CODE IFS!!!
         
+        /* * *
+        * Enough to trade for three kinds
+        */
         // if none present - need to trade for three
         if(myRes->MTV < 1 && myRes->MMONEY < 1 && myRes->MJ < 1) {
             // trade for MJs first
@@ -114,11 +117,29 @@ action smartTrading (Res myRes, int actionCode) {
             // Note: after this action we will only have enough to trade 2
             // but there will be MJs now
         } 
+        
+        /* * *
+        * Enough to trade for two kinds
+        */
         // we have MJs but no MTVs and no MMONEYs
         else if(myRes->MJ >= 1 && myRes->MTV < 1 && myRes->MMONEY < 1) {
             // trade for MTVs first (no particular reason)
             nextAction = enoughToTradeTwo(nextAction, myRes, STUDENT_MTV, myRes->MJ, STUDENT_MJ); 
         }
+        // we have MTVs no MJs and no MMONEYs
+        else if(myRes->MTV >=1 && myRes->MJ < 1 && myRes->MMONEY < 1) {
+            // trade for MJs, may trade MTVs
+            nextAction = enoughToTradeTwo(nextAction, myRes, STUDENT_MJ, myRes->MTV, STUDENT_MTV);
+        }
+        // we have MMONEYs no MJs and no MTVs
+        else if(myRes->MMONEY >= 1 && myRes->MJ < 1 && myRes->MTV < 1) {
+            // trade for MJs, may trade MMONEYs
+            nextAction = enoughToTradeTwo(nextAction, myRes, STUDENT_MJ, myRes->MMONEY, STUDENT_MMONEY); 
+        }
+
+        /* * *
+        * Trading for one kind
+        */
         // we have MJs and MTVs and no MMONEYs
         else if(myRes->MJ >= 1 && myRes->MTV >= 1 && myRes->MMONEY < 1) {
             // trade for MMONEYs
@@ -138,7 +159,7 @@ action smartTrading (Res myRes, int actionCode) {
             }
         }
         // we have MTVs and MMONEYs but no MJs (suddenly)
-        else if(myRes->MJ < 1 && myRes->MMONEY >= 1 && myRes->MTV >= 1) {
+        else if(myRes->MTV >= 1 && myRes->MMONEY >= 1 && myRes->MJ < 1) {
             // trade for MJs
             nextAction = enoughToTradeOne(nextAction, myRes, STUDENT_MJ, myRes->MTV, STUDENT_MTV); 
             // not possible? try to use MMONEYs as alternative
@@ -146,26 +167,16 @@ action smartTrading (Res myRes, int actionCode) {
                 nextAction = enoughToTradeOne(nextAction, myRes, STUDENT_MJ, myRes->MMONEY, STUDENT_MMONEY); 
             }
         }
-        // we have MTVs no MMONEYs no MJs
-        else if(myRes->MJ < 1 && myRes->MMONEY < 1 && myRes->MTV >= 1) {
-            // trade for MJs
-            nextAction = enoughToTradeTwo(nextAction, myRes, STUDENT_MJ, myRes->MTV, STUDENT_MTV);
-        }
-        // we have MMONEYs no MTVs no MJs
-        else if(myRes->MJ < 1 && myRes->MMONEY >= 1 && myRes->MTV < 1) {
-            // trade for MJs
-            nextAction = enoughToTradeTwo(nextAction, myRes, STUDENT_MJ, myRes->MMONEY, STUDENT_MMONEY); 
-        }
         // if all else failed - we can't trade all of the stuff in one go yet
         if(nextAction.actionCode == PASS) {
             printf("> Can't trade in one go yet...\n");
-            // if you have enough MTVs - trade them for MJ
+            // BUT: if you have enough MTVs - trade them for MJ
             if(myRes->MTV >= 3) {
                 nextAction.actionCode = RETRAIN_STUDENTS;
                 nextAction.disciplineFrom = STUDENT_MTV;
                 nextAction.disciplineTo = STUDENT_MJ;
             }
-            // if you have enough MMONEYs - trade them for MJ
+            // ALSO: if you have enough MMONEYs - trade them for MJ
             else if(myRes->MMONEY >= 3) {
                 nextAction.actionCode = RETRAIN_STUDENTS;
                 nextAction.disciplineFrom = STUDENT_MMONEY;
@@ -207,7 +218,7 @@ action enoughToTradeThree(action a, Res myRes, int kind) {
     return a;
 }
 
-// checks if there is enough resources to trade all three kinds
+// checks if there is enough resources to trade two kinds
 // takes altRes and altKind to use alternative kind if BPS/BQN are not sufficient
 action enoughToTradeTwo(action a, Res myRes, int kind, int altRes, int altKind) {
     printf("> Enough to trade two?");
@@ -249,22 +260,20 @@ action enoughToTradeTwo(action a, Res myRes, int kind, int altRes, int altKind) 
 // checks if there is enough to trade for one kind of students
 // takes altRes and altKind to use alternative kind if BPS/BQN are not sufficient
 action enoughToTradeOne(action a, Res myRes, int kind, int altRes, int altKind) {
+    a.actionCode = RETRAIN_STUDENTS;
     // enough BPS? - trade them
     if(myRes->BPS >= 3) {
         printf("> BPS >= 3\n");
-        a.actionCode = RETRAIN_STUDENTS;
         a.disciplineFrom = STUDENT_BPS;
     }
     // else, enough BQN? - trade them
     else if(myRes->BQN >= 3) {
         printf("> BPS >= 3\n");
-        a.actionCode = RETRAIN_STUDENTS;
         a.disciplineFrom = STUDENT_BQN;
     }
     // else, enough altRes? - trade them
     else if(altRes >= 3) {
         printf("> [%d] >= 3\n", altKind);
-        a.actionCode = RETRAIN_STUDENTS;
         a.disciplineFrom = altKind;
     }
     else {
