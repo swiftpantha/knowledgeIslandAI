@@ -8,6 +8,16 @@
  *
  */
 
+#include <stdio.h>
+#include <stdlib.h>
+#include <assert.h>
+#include <string.h>
+#include <math.h>
+
+#include "Game.h"
+#include "mechanicalTurk.h"
+
+
 #define START_1A "RL"
 #define START_3A "LRLRRLLLLLL"
 #define START_2A "LRLRRLRLRLLLLL"
@@ -22,20 +32,76 @@
 #define POINT_E "LRRR"
 #define POINT_F "LRRRR"
 
+//Player 1 Vertice 1A
+#define PLAYER_1_VERT_1A1 3
+#define PLAYER_1_VERT_1A2 7
+#define PLAYER_1_VERT_1A3 8
+//Player 1 Vertice 2A
+#define PLAYER_1_VERT_2A1 8
+#define PLAYER_1_VERT_2A2 8
+#define PLAYER_1_VERT_2A3 12
+
+//Player 2 Vertice 1A
+#define PLAYER_2_VERT_1A1 14
+#define PLAYER_2_VERT_1A2 17
+#define PLAYER_2_VERT_1A3 18
+//Player 2 Vertice 2A
+#define PLAYER_2_VERT_2A1 14
+#define PLAYER_2_VERT_2A2 15
+#define PLAYER_2_VERT_2A3 18
+
+//Player 3 Vertice 1A
+#define PLAYER_3_VERT_1A1 12
+#define PLAYER_3_VERT_1A2 13
+#define PLAYER_3_VERT_1A3 16
+//Player 3 Vertice 2A
+#define PLAYER_3_VERT_2A1 13
+#define PLAYER_3_VERT_2A2 16
+#define PLAYER_3_VERT_2A3 17
+
+//Player 1 Vertice 1B
+#define PLAYER_1_VERT_1B1 11
+#define PLAYER_1_VERT_1B2 10
+#define PLAYER_1_VERT_1B3 15
+//Player 1 Vertice 2B
+#define PLAYER_1_VERT_2B1 11
+#define PLAYER_1_VERT_2B2 10
+#define PLAYER_1_VERT_2B3 6
+
+//Player 2 Vertice 1B
+#define PLAYER_2_VERT_1B1 0
+#define PLAYER_2_VERT_1B2 4
+#define PLAYER_2_VERT_1B3 1
+//Player 2 Vertice 2B
+#define PLAYER_2_VERT_2B1 0
+#define PLAYER_2_VERT_2B2 4
+#define PLAYER_2_VERT_2B3 3
+
+//Player 3 Vertice 1B
+#define PLAYER_3_VERT_1B1 2
+#define PLAYER_3_VERT_1B2 5
+#define PLAYER_3_VERT_1B3 6
+//Player 3 Vertice 2B
+#define PLAYER_3_VERT_2B1 2
+#define PLAYER_3_VERT_2B2 5
+#define PLAYER_3_VERT_2B3 1
+
+//Define Regions Ranks
+#define RANK_STUDENT_BPS 3
+#define RANK_STUDENT_BQN 3
+#define RANK_STUDENT_MJ 3
+#define RANK_STUDENT_MMONEY 2
+#define RANK_STUDENT_MTV 2
+#define RANK_STUDENT_THD 0
+
 #define FIRST_POINT 1
 #define FIRST_SIDE 1
 
 #define MAX_ATTEMPTS 5
+#define NUM_CAMPUS 3
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <assert.h>
-#include <string.h>
  
-#include "Game.h"
-#include "mechanicalTurk.h"
- 
-#define DEFAULT_DISCIPLINES { STUDENT_BQN, STUDENT_MMONEY, STUDENT_MJ, \
+#define DEFAULT_DISCIPLINES {STUDENT_BQN, STUDENT_MMONEY, STUDENT_MJ, \
                 STUDENT_MMONEY, STUDENT_MJ, STUDENT_BPS, STUDENT_MTV, \
                 STUDENT_MTV, STUDENT_BPS,STUDENT_MTV, STUDENT_BQN, \
                 STUDENT_MJ, STUDENT_BQN, STUDENT_THD, STUDENT_MJ, \
@@ -53,11 +119,18 @@ typedef struct _res { // resources struct
 
 typedef struct _res * Res; // pointer to a _res struct
 
+typedef struct _build {
+    int point;
+    int side;
+} build;
+
+
+
 action smartTrading (Res myRes, int actionCode);
 action dumbTrading (int resource);
 char* stringParser(int player, int vertice, int point);
 //int resourceCheck(int a, int b, int c, int d, int e, int f);
-action dumbBuilding (path destination, Game g);
+action dumbBuilding (path destination, Game g, int vertice);
 Res getMyRes (Game g);
 action enoughToTradeThree(action a, Res myRes, int kind);
 action enoughToTradeTwo(action a, Res myRes, int kind, int altRes, int altKind);
@@ -66,39 +139,102 @@ void testStringParser(void);
 void testDumbBuilding(Game g);
 void testSmartTrading (Game g);
 char* kindToName(int kind);
+build buildDecider(Game g, int player);
+void testRegionRanker(void);
+int regionRanker(int Discipline);
+void testBuildDecider(Game g);
+int max(int num1, int num2);
+
 
 action decideAction (Game g) {
-    int player = getWhoseTurn(g);
-    int attempts = 1;
+
     //int mj;
     //int mm;
     //int mtv;
-    action nextAction;
     // mj = getStudents (g, UNI_A, STUDENT_MJ);
     // mm = getStudents (g, UNI_A, STUDENT_MMONEY);
     // mtv = getStudents (g, UNI_A, STUDENT_MTV);
     // if(mj >= 1 && mm >= 1 && mtv >= 1) {
     
-    char *pathCampus = stringParser(player, FIRST_POINT, FIRST_SIDE);
-    
+    int player = getWhoseTurn(g);
+    int attempts = 1;
+    action nextAction;
+    build decision;
     Res myRes;
     myRes = getMyRes(g);
+    int excessTrade = 0;
     
-    //Here we build until we get x campuses then we smart trade for spin
-    if ((getCampus(g,pathCampus) != player) &&
-        //Though 1 We start buiilding
-        (attempts <= MAX_ATTEMPTS)) {
-        printf("Attempt: %d",attempts);
-        nextAction = dumbBuilding(pathCampus, g);
+    //Check if we have less campuses then we want, keep getting more.
+    if (getCampuses(g, player) < NUM_CAMPUS) {
+        decision = buildDecider(g, player);
+        char *pathCampus = stringParser(player,
+                                        decision.point, decision.side);
+        if ((getCampus(g,pathCampus) != player) &&
+            (attempts <= MAX_ATTEMPTS)) {
+            //Thought 1 We start buiilding
+            printf("Attempt: %d",attempts);
+            nextAction = dumbBuilding(pathCampus, g, decision.point);
+            //Check if we have enough resoures for this action.
+            
+            if (nextAction.actionCode == OBTAIN_ARC &&
+                myRes->BPS > 0 &&
+                myRes->BQN > 0) {
+                printf("Enough Resources to build ARC\n");
+                //Not enough resources. Try and trade BPS first
+            } else if (myRes->BPS == 0){
+                if (myRes->MTV > 3) {
+                    excessTrade = STUDENT_MTV;
+                } else if (myRes->BQN > 5) {
+                    excessTrade = STUDENT_BQN;
+                } else if (myRes->MJ > 5) {
+                    excessTrade = STUDENT_MJ;
+                } else if (myRes->MMONEY > 5) {
+                    excessTrade = STUDENT_MMONEY;
+                } else if (myRes->BPS > 5) {
+                    excessTrade = STUDENT_BPS;
+                }
+                nextAction = enoughToTradeOne(nextAction,
+                    myRes, STUDENT_BPS,excessTrade, excessTrade);
+                
+            } else if (myRes->BQN == 0){
+                if (myRes->MTV > 3) {
+                    excessTrade = STUDENT_MTV;
+                } else if (myRes->BQN > 5) {
+                    excessTrade = STUDENT_BQN;
+                } else if (myRes->MJ > 5) {
+                    excessTrade = STUDENT_MJ;
+                } else if (myRes->MMONEY > 5) {
+                    excessTrade = STUDENT_MMONEY;
+                } else if (myRes->BPS > 5) {
+                    excessTrade = STUDENT_BPS;
+                }
+                nextAction = enoughToTradeOne(nextAction,
+                        myRes, STUDENT_BQN,excessTrade, excessTrade);
+                
+            } else if (nextAction.actionCode == BUILD_CAMPUS &&
+                myRes->BPS > 0 && myRes->BQN > 0 && myRes->MJ > 0 &&
+                myRes->MTV > 0) {
+                printf("Enough Resources to build Campus\n");
+                
+            } else {
+                //Trade for things to build
+                printf("Trying to trade\n");
+            }
+            
+            //Check everything is legal
+            if (isLegalAction(g, nextAction) != TRUE){
+                printf("Action isn't Legal\n");
+                nextAction.actionCode = PASS;
+            }
+        }
     } else {
-        //Thought 2 We start spinning
-        nextAction.actionCode = START_SPINOFF;
+    //Thought 2 We start spinning
+    nextAction.actionCode = START_SPINOFF;
         if (isLegalAction(g, nextAction) != TRUE) {
             // thought 1: how about we smart trade?
             nextAction = smartTrading(myRes, START_SPINOFF);
         }
     }
-    
     return nextAction;
 }
 
@@ -114,9 +250,11 @@ int main (int argc, char *argv[]) {
     
     printf("==== Tests start ====\n");
     
+    testRegionRanker();
     testSmartTrading(testGame);
     testStringParser();
     testDumbBuilding(testGame);
+    testBuildDecider(testGame);
     
     printf ("All AI tests passed. You are awesome!\n");
 
@@ -325,11 +463,10 @@ action dumbTrading(int resource) {
 }
 
 // Tries to progressively build a campus at the destination
-action dumbBuilding(path destination, Game g) {
+action dumbBuilding(path destination, Game g, int vertice) {
     action nextAction;
     int length = 0;
     int player = getWhoseTurn(g);
-    int vertice = FIRST_POINT;
     int counter = 0;
     int end = 0;
     int flag = TRUE;
@@ -500,15 +637,15 @@ Res getMyRes (Game g) {
 void testDumbBuilding(Game g){
     throwDice(g, 1);
     throwDice(g, 1);
-    throwDice(g, 1);
-    
+
     action newAction;
     int player = getWhoseTurn(g);
     int attempts = 1;
+    int vertice = 1;
     printf("\n\n======= TESTING DUMB BUILD =========\n");
     printf("Players %d's turn\n", player);
     
-    char *pathCampus = stringParser(player, FIRST_POINT, FIRST_SIDE);
+    char *pathCampus = stringParser(player, vertice, 2);
     
     //Initiate the current owner of the vertice
     int owner = getCampus(g,pathCampus);
@@ -518,7 +655,7 @@ void testDumbBuilding(Game g){
     //Repeatedly call this until that campus is ours!
     while ((owner != player) && (attempts <= MAX_ATTEMPTS)) {
         printf("Attempt: %d\n", attempts);
-        newAction = dumbBuilding(pathCampus, g);
+        newAction = dumbBuilding(pathCampus, g,vertice);
         printf("\nCurrent Owner of ARC: %d\n",
                getARC(g,newAction.destination));
         
@@ -540,7 +677,6 @@ void testDumbBuilding(Game g){
     
     printf("\nAfter owner: %d\n", getCampus(g,pathCampus));
 }
-
 
 void testSmartTrading(Game g) {
     printf("testSmartTrading start\n");
@@ -618,4 +754,235 @@ void testSmartTrading(Game g) {
     assert (newAction.actionCode == PASS);
     
     printf("testSmartTrading end\n");
+}
+
+// This function returns whether to build point at vertice 1|2 at A|B
+build buildDecider(Game g, int player){
+    build decision;
+    int point1 = 0;
+    int point2 = 0;
+    int point3 = 0;
+    int point4 = 0;
+    int biggest = 0;
+    
+    if (player == 1) {
+        //Get the value for the first point
+        point1 = regionRanker(getDiscipline(g, PLAYER_1_VERT_1A1)) +
+        regionRanker(getDiscipline(g, PLAYER_1_VERT_1A2)) +
+        regionRanker(getDiscipline(g, PLAYER_1_VERT_1A3));
+        
+        //And the second
+        point2 = regionRanker(getDiscipline(g, PLAYER_1_VERT_2A1)) +
+        regionRanker(getDiscipline(g, PLAYER_1_VERT_2A2)) +
+        regionRanker(getDiscipline(g, PLAYER_1_VERT_2A3));
+        
+        //And the third
+        point3 = regionRanker(getDiscipline(g, PLAYER_1_VERT_1B1)) +
+        regionRanker(getDiscipline(g, PLAYER_1_VERT_1B2)) +
+        regionRanker(getDiscipline(g, PLAYER_1_VERT_1B3));
+        
+        //And the fourth
+        point4 = regionRanker(getDiscipline(g, PLAYER_1_VERT_2B1)) +
+        regionRanker(getDiscipline(g, PLAYER_1_VERT_2B2)) +
+        regionRanker(getDiscipline(g, PLAYER_1_VERT_2B3));
+        
+        //Make any point we already own non-viable
+        if (getCampus(g, stringParser(player, 1, 1)) == player) {
+            point1 = 0;
+        }
+        if (getCampus(g, stringParser(player, 2, 1)) == player) {
+            point2 = 0;
+        }
+        if (getCampus(g, stringParser(player, 1, 2)) == player) {
+            point3 = 0;
+        }
+        if (getCampus(g, stringParser(player, 2, 2)) == player) {
+            point4 = 0;
+        }
+        
+        biggest = max(point1,point2);
+        biggest = max(biggest, point3);
+        biggest = max(biggest, point4);
+        printf("Biggest: %d\n", biggest);
+
+        
+        if (point1 == biggest){
+            decision.point = 1;
+            decision.side = 1;
+        } else if (point2 == biggest) {
+            decision.point = 2;
+            decision.side = 1;
+        } else if (point3 == biggest) {
+            decision.point = 1;
+            decision.side = 2;
+        } else if (point4 == biggest) {
+            decision.point = 2;
+            decision.side = 2;
+        }
+    } else if (player == 2) {
+        //Get the value for the first point
+        point1 = regionRanker(getDiscipline(g, PLAYER_2_VERT_1A1)) +
+        regionRanker(getDiscipline(g, PLAYER_2_VERT_1A2)) +
+        regionRanker(getDiscipline(g, PLAYER_2_VERT_1A3));
+        
+        //And the second
+        point2 = regionRanker(getDiscipline(g, PLAYER_2_VERT_2A1)) +
+        regionRanker(getDiscipline(g, PLAYER_2_VERT_2A2)) +
+        regionRanker(getDiscipline(g, PLAYER_2_VERT_2A3));
+        
+        //And the third
+        point3 = regionRanker(getDiscipline(g, PLAYER_2_VERT_1B1)) +
+        regionRanker(getDiscipline(g, PLAYER_2_VERT_1B2)) +
+        regionRanker(getDiscipline(g, PLAYER_2_VERT_1B3));
+        
+        //And the fourth
+        point4 = regionRanker(getDiscipline(g, PLAYER_2_VERT_2B1)) +
+        regionRanker(getDiscipline(g, PLAYER_2_VERT_2B2)) +
+        regionRanker(getDiscipline(g, PLAYER_2_VERT_2B3));
+        
+        //Make any point we already own non-viable
+        if (getCampus(g, stringParser(player, 1, 1)) == player) {
+            point1 = 0;
+        }
+        if (getCampus(g, stringParser(player, 2, 1)) == player) {
+            point2 = 0;
+        }
+        if (getCampus(g, stringParser(player, 1, 2)) == player) {
+            point3 = 0;
+        }
+        if (getCampus(g, stringParser(player, 2, 2)) == player) {
+            point4 = 0;
+        }
+        
+        biggest = max(point1,point2);
+        biggest = max(biggest, point3);
+        biggest = max(biggest, point4);
+        printf("Biggest: %d\n", biggest);
+
+        if (point1 == biggest){
+            decision.point = 1;
+            decision.side = 1;
+        } else if (point2 == biggest) {
+            decision.point = 2;
+            decision.side = 1;
+        } else if (point3 == biggest) {
+            decision.point = 1;
+            decision.side = 2;
+        } else if (point4 == biggest) {
+            decision.point = 2;
+            decision.side = 2;
+        }
+        
+    } else if (player == 3) {
+        
+        //Get the value for the first point
+        point1 = regionRanker(getDiscipline(g, PLAYER_3_VERT_1A1)) +
+        regionRanker(getDiscipline(g, PLAYER_3_VERT_1A2)) +
+        regionRanker(getDiscipline(g, PLAYER_3_VERT_1A3));
+        
+        //And the second
+        point2 = regionRanker(getDiscipline(g, PLAYER_3_VERT_2A1)) +
+        regionRanker(getDiscipline(g, PLAYER_3_VERT_2A2)) +
+        regionRanker(getDiscipline(g, PLAYER_3_VERT_2A3));
+        
+        //And the third
+        point3 = regionRanker(getDiscipline(g, PLAYER_3_VERT_1B1)) +
+        regionRanker(getDiscipline(g, PLAYER_3_VERT_1B2)) +
+        regionRanker(getDiscipline(g, PLAYER_3_VERT_1B3));
+        
+        //And the fourth
+        point4 = regionRanker(getDiscipline(g, PLAYER_3_VERT_2B1)) +
+        regionRanker(getDiscipline(g, PLAYER_3_VERT_2B2)) +
+        regionRanker(getDiscipline(g, PLAYER_3_VERT_2B3));
+        
+        //Make any point we already own non-viable
+        if (getCampus(g, stringParser(player, 1, 1)) == player) {
+            point1 = 0;
+        }
+        if (getCampus(g, stringParser(player, 2, 1)) == player) {
+            point2 = 0;
+        }
+        if (getCampus(g, stringParser(player, 1, 2)) == player) {
+            point3 = 0;
+        }
+        if (getCampus(g, stringParser(player, 2, 2)) == player) {
+            point4 = 0;
+        }
+        
+        biggest = max(point1,point2);
+        biggest = max(biggest, point3);
+        biggest = max(biggest, point4);
+        printf("Biggest: %d\n", biggest);
+
+        if (point1 == biggest){
+            decision.point = 1;
+            decision.side = 1;
+        } else if (point2 == biggest) {
+            decision.point = 2;
+            decision.side = 1;
+        } else if (point3 == biggest) {
+            decision.point = 1;
+            decision.side = 2;
+        } else if (point4 == biggest) {
+            decision.point = 2;
+            decision.side = 2;
+        }
+        
+    } else {
+        printf("Waring: Player Number out of bounds\n");
+    }
+    
+    printf("Optimum Placment at vertice: %d\n Side: %d\n",
+           decision.point, decision.side);
+    return decision;
+}
+
+void testBuildDecider(Game g) {
+    int player = 1;
+    build decision;
+    decision = buildDecider(g, player);
+    assert(decision.point == 2);
+    assert(decision.side == 1);
+    
+}
+
+int regionRanker(int Discipline){
+    int rank = 0;
+    printf("Discipline code: %d\n", Discipline);
+    //Return the rank for the given region
+    if (Discipline == STUDENT_BPS){
+        rank = RANK_STUDENT_BPS;
+    } else if (Discipline == STUDENT_BQN) {
+        rank = RANK_STUDENT_BQN;
+    } else if (Discipline == STUDENT_MJ) {
+        rank = RANK_STUDENT_MJ;
+    } else if (Discipline == STUDENT_MMONEY) {
+        rank = RANK_STUDENT_MMONEY;
+    } else if (Discipline == STUDENT_MTV) {
+        rank = RANK_STUDENT_MTV;
+    } else if (Discipline == STUDENT_THD) {
+        rank = RANK_STUDENT_THD;
+    }
+    return rank;
+}
+
+void testRegionRanker(void) {
+    assert(regionRanker(STUDENT_BPS) == RANK_STUDENT_BPS);
+    assert(regionRanker(STUDENT_BQN) == RANK_STUDENT_BQN);
+    assert(regionRanker(STUDENT_MMONEY) == RANK_STUDENT_MMONEY);
+    assert(regionRanker(STUDENT_MJ) == RANK_STUDENT_MJ);
+    assert(regionRanker(STUDENT_MTV) == RANK_STUDENT_MTV);
+    assert(regionRanker(STUDENT_THD) == RANK_STUDENT_THD);
+}
+
+
+int max(int num1, int num2) {
+    int result;
+    
+    if (num1 > num2)
+        result = num1;
+    else
+        result = num2;
+    
+    return result;
 }
