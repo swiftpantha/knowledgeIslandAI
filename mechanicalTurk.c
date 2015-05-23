@@ -180,40 +180,8 @@ action decideAction (Game g) {
             //Thought 1 We start buiilding
             printf("Attempt: %d",attempts);
             nextAction = dumbBuilding(pathCampus, g, decision.point);
-            //Check if we have enough resoures for this action.
+            nextAction = smartTrading(myRes, nextAction.actionCode);
             
-            if (nextAction.actionCode == OBTAIN_ARC &&
-                myRes->BPS > 0 &&
-                myRes->BQN > 0) {
-                printf("Enough Resources to build ARC\n");
-                //Not enough resources. Try to trade
-            } else if (myRes->BPS == 0){
-                nextAction = dumbTradingSmartBuilding(myRes,
-                                                STUDENT_BPS, OBTAIN_ARC);
-            } else if (myRes->BQN == 0){
-                nextAction = dumbTradingSmartBuilding(myRes,
-                                                STUDENT_BQN, OBTAIN_ARC);
-                
-            } else if (nextAction.actionCode == BUILD_CAMPUS &&
-                myRes->BPS > 0 && myRes->BQN > 0 && myRes->MJ > 0 &&
-                myRes->MTV > 0) {
-                printf("Enough Resources to build Campus\n");
-                
-            } else if (myRes->BPS == 0){
-                nextAction = dumbTradingSmartBuilding(myRes,
-                                                STUDENT_BPS, OBTAIN_ARC);
-            } else if (myRes->BQN == 0){
-                nextAction = dumbTradingSmartBuilding(myRes,
-                                                STUDENT_BQN, OBTAIN_ARC);
-            } else if (myRes->MJ == 0){
-                nextAction = dumbTradingSmartBuilding(myRes,
-                                                STUDENT_MJ, OBTAIN_ARC);
-            } else if (myRes->MTV == 0){
-                nextAction = dumbTradingSmartBuilding(myRes,
-                                                STUDENT_MTV, OBTAIN_ARC);
-            }
-            
-            //Check everything is legal
             if (isLegalAction(g, nextAction) != TRUE){
                 printf("Action isn't Legal\n");
                 nextAction.actionCode = PASS;
@@ -230,7 +198,7 @@ action decideAction (Game g) {
     return nextAction;
 }
 
-
+/*
 int main (int argc, char *argv[]) {
     
     int disciplines[] = DEFAULT_DISCIPLINES;
@@ -252,7 +220,7 @@ int main (int argc, char *argv[]) {
 
     return EXIT_SUCCESS;
 }
-
+*/
 
 // Trades Only whenever enough to complete action succesfully
 action smartTrading (Res myRes, int actionCode) {
@@ -1398,15 +1366,19 @@ build buildDecider(Game g, int player){
         //Make any point we already own non-viable
         if (getCampus(g, stringParser(player, 1, 1)) == player) {
             point1 = 0;
+            point2 = 0;
         }
         if (getCampus(g, stringParser(player, 2, 1)) == player) {
             point2 = 0;
+            point1 = 0;
         }
         if (getCampus(g, stringParser(player, 1, 2)) == player) {
             point3 = 0;
+            point4 = 0;
         }
         if (getCampus(g, stringParser(player, 2, 2)) == player) {
             point4 = 0;
+            point3 = 0;
         }
         
         biggest = max(point1,point2);
@@ -1453,15 +1425,19 @@ build buildDecider(Game g, int player){
         //Make any point we already own non-viable
         if (getCampus(g, stringParser(player, 1, 1)) == player) {
             point1 = 0;
+            point2 = 0;
         }
         if (getCampus(g, stringParser(player, 2, 1)) == player) {
             point2 = 0;
+            point1 = 0;
         }
         if (getCampus(g, stringParser(player, 1, 2)) == player) {
             point3 = 0;
+            point4 = 0;
         }
         if (getCampus(g, stringParser(player, 2, 2)) == player) {
             point4 = 0;
+            point3 = 0;
         }
         
         biggest = max(point1,point2);
