@@ -148,9 +148,9 @@ int regionRanker(int Discipline);
 void testBuildDecider(Game g);
 int max(int num1, int num2);
 int getTradeKind(Res r, int range);
-int getHowManySet(Res r, int amount);
-int getHowManySetExcluding(Res r, int amount, int exclude);
-int getWhatSet(Res r, int amount);
+int getHowManySet(Res r, int amount, int range);
+int getHowManySetExcluding(Res r, int amount, int range, int exclude);
+int getWhatSet(Res r, int amount, int range);
 action dumbTradingSmartBuilding(Res r, int student, int actionCode);
 
 action decideAction (Game g) {
@@ -230,7 +230,7 @@ action decideAction (Game g) {
     return nextAction;
 }
 
-/*
+
 int main (int argc, char *argv[]) {
     
     int disciplines[] = DEFAULT_DISCIPLINES;
@@ -252,7 +252,7 @@ int main (int argc, char *argv[]) {
 
     return EXIT_SUCCESS;
 }
-*/
+
 
 // Trades Only whenever enough to complete action succesfully
 action smartTrading (Res myRes, int actionCode) {
@@ -369,77 +369,81 @@ action smartTrading (Res myRes, int actionCode) {
         myRes = packRes(myRes); // get an array of res in myRes->pack for easy access
         
         // we have all kinds - build CAMPUS
-        if(getHowManySet(myRes, 1) >= 4) {
+        if(getHowManySet(myRes, 1, actionCode) >= 4) {
             printf("> smartTrading - Build Campus order internal\n");
             nextAction.actionCode = BUILD_CAMPUS;
         }
         // we have 12 MMONEYs and nothing else - trade for BPS (default)
-        else if(myRes->MMONEY >= 12 && getHowManySet(myRes, 1) < 1) {
+        else if(myRes->MMONEY >= 12 && getHowManySet(myRes, 1, actionCode) < 1) {
             nextAction.actionCode = RETRAIN_STUDENTS;
             nextAction.disciplineFrom = STUDENT_MMONEY;
             nextAction.disciplineTo = STUDENT_BPS;
         }
         // we have 9 MMONEYs and at least one kind is set - trade
-        else if(myRes->MMONEY >= 9 && getHowManySet(myRes, 1) >= 1) {
+        else if(myRes->MMONEY >= 9 && getHowManySet(myRes, 1, actionCode) >= 1) {
             nextAction.actionCode = RETRAIN_STUDENTS;
             nextAction.disciplineFrom = STUDENT_MMONEY;
             nextAction.disciplineTo = getTradeKind(myRes, actionCode);
         }
         // we have 6 MMONEYs and at least 2 of kinds set - trade
-        else if(myRes->MMONEY >= 6 && getHowManySet(myRes, 1) >= 2) {
+        else if(myRes->MMONEY >= 6 && getHowManySet(myRes, 1, actionCode) >= 2) {
             nextAction.actionCode = RETRAIN_STUDENTS;
             nextAction.disciplineFrom = STUDENT_MMONEY;
             nextAction.disciplineTo = getTradeKind(myRes, actionCode);
         }
         // we have 3 MMONEYs and at least 3 of kinds set - trade
-        else if(myRes->MMONEY >= 3 && getHowManySet(myRes, 1) >= 3) {
+        else if(myRes->MMONEY >= 3 && getHowManySet(myRes, 1, actionCode) >= 3) {
             nextAction.actionCode = RETRAIN_STUDENTS;
             nextAction.disciplineFrom = STUDENT_MMONEY;
             nextAction.disciplineTo = getTradeKind(myRes, actionCode);
         }
         // we have 6 MMONEYs and 1 kind having 4 - trade
-        else if(myRes->MMONEY >= 6 && getHowManySet(myRes, 4) >= 1) {
+        else if(myRes->MMONEY >= 6 && getHowManySet(myRes, 4, actionCode) >= 1) {
             nextAction.actionCode = RETRAIN_STUDENTS;
             nextAction.disciplineFrom = STUDENT_MMONEY;
             nextAction.disciplineTo = getTradeKind(myRes, actionCode);
         }
         // we have 3 MMONEYs and 1 kind having 7 - trade
-        else if(myRes->MMONEY >= 3 && getHowManySet(myRes, 7) >= 1) {
+        else if(myRes->MMONEY >= 3 && getHowManySet(myRes, 7, actionCode) >= 1) {
             nextAction.actionCode = RETRAIN_STUDENTS;
             nextAction.disciplineFrom = STUDENT_MMONEY;
             nextAction.disciplineTo = getTradeKind(myRes, actionCode);
         }
         // we have 3 MMONEYs and 1 kind having 4
         // and 1 more set that is not the one having 4 - trade
-        else if(myRes->MMONEY >= 3 && getHowManySet(myRes, 4) >= 1 && getHowManySetExcluding(myRes, 1, getWhatSet(myRes, 4)) >= 1) {
+        else if(myRes->MMONEY >= 3 && 
+                getHowManySet(myRes, 4, actionCode) >= 1 && 
+                getHowManySetExcluding(myRes, 1, actionCode, getWhatSet(myRes, 4, actionCode)) >= 1) {
             nextAction.actionCode = RETRAIN_STUDENTS;
             nextAction.disciplineFrom = STUDENT_MMONEY;
             nextAction.disciplineTo = getTradeKind(myRes, actionCode);
         }
-        // we have 0 MMONEYs and 1 kind having 10 - trade
-        else if(myRes->MMONEY < 1 && getHowManySet(myRes, 10) >= 1) {
+        // we have 1 kind having 10 - trade
+        else if(getHowManySet(myRes, 10, actionCode) >= 1) {
             nextAction.actionCode = RETRAIN_STUDENTS;
-            nextAction.disciplineFrom = getWhatSet(myRes, 10); // what is the resource that has 10?
+            nextAction.disciplineFrom = getWhatSet(myRes, 10, actionCode); // what is the resource that has 10?
             nextAction.disciplineTo = getTradeKind(myRes, actionCode);
         }
-        // we have 0 MMONEYs and 1 kind having 7
+        // we have 1 kind having 7
         // and 1 more (that is not the one having 7) set - trade
-        else if(myRes->MMONEY < 1 && getHowManySet(myRes, 7) >= 1 && getHowManySetExcluding(myRes, 1, getWhatSet(myRes, 7)) >= 1) {
+        else if(getHowManySet(myRes, 7, actionCode) >= 1 && 
+                getHowManySetExcluding(myRes, 1, actionCode, getWhatSet(myRes, 7, actionCode)) >= 1) {
             nextAction.actionCode = RETRAIN_STUDENTS;
-            nextAction.disciplineFrom = getWhatSet(myRes, 7);
+            nextAction.disciplineFrom = getWhatSet(myRes, 7, actionCode);
             nextAction.disciplineTo = getTradeKind(myRes, actionCode);
         }
-        // we have 0 MMONEYs and 2 kinds having 4 - trade
-        else if(myRes->MMONEY < 1 && getHowManySet(myRes, 4) >= 2) {
+        // we have 2 kinds having 4 - trade
+        else if(getHowManySet(myRes, 4, actionCode) >= 2) {
             nextAction.actionCode = RETRAIN_STUDENTS;
-            nextAction.disciplineFrom = getWhatSet(myRes, 4);
+            nextAction.disciplineFrom = getWhatSet(myRes, 4, actionCode);
             nextAction.disciplineTo = getTradeKind(myRes, actionCode);
         }
-        // we have 0 MMONEYs and 1 kind having 4
+        // we have 1 kind having 4
         // and 2 more (that are not the one having 4) set - trade
-        else if(myRes->MMONEY < 1 && getHowManySet(myRes, 4) >= 1 && getHowManySetExcluding(myRes, 1, getWhatSet(myRes, 4)) >= 2) {
+        else if(getHowManySet(myRes, 4, actionCode) >= 1 && 
+                getHowManySetExcluding(myRes, 1, actionCode, getWhatSet(myRes, 4, actionCode)) >= 2) {
             nextAction.actionCode = RETRAIN_STUDENTS;
-            nextAction.disciplineFrom = getWhatSet(myRes, 4);
+            nextAction.disciplineFrom = getWhatSet(myRes, 4, actionCode);
             nextAction.disciplineTo = getTradeKind(myRes, actionCode);
         }
         // if all else failed - we can't trade all of the stuff in one go yet
@@ -459,6 +463,53 @@ action smartTrading (Res myRes, int actionCode) {
             }
         } // end else
     } // end if BUILD_CAMPUS
+
+    // OBTAIN_ARC smart trading:
+    // Need 1 BPS, 1 BQN
+    // Know that MTV and MMONEY dissapear on dice score being 7
+    // Logic:
+    // Simply trade for BPS and BQN whenever possible
+    // Always trade the volatile resources asap not to lose them - it's covered in first IFs here
+    if (actionCode == OBTAIN_ARC) {
+        printf("> smartTrading for OBTAIN_ARC\n");
+        
+        myRes = packRes(myRes); // get an array of res in myRes->pack for easy access
+
+        // we have all kinds - build CAMPUS
+        if(getHowManySet(myRes, 1, actionCode) >= 2) {
+            printf("> smartTrading - Obtain Arc order internal\n");
+            nextAction.actionCode = OBTAIN_ARC;
+        }
+        // we have 3 MMONEYs trade for BPS/BQN
+        else if(myRes->MMONEY >= 3) {
+            nextAction.actionCode = RETRAIN_STUDENTS;
+            nextAction.disciplineFrom = STUDENT_MMONEY;
+            nextAction.disciplineTo = getTradeKind(myRes, actionCode);
+        }
+        // we have 3 MTVs trade for BPS/BQN
+        else if(myRes->MTV >= 3) {
+            nextAction.actionCode = RETRAIN_STUDENTS;
+            nextAction.disciplineFrom = STUDENT_MTV;
+            nextAction.disciplineTo = getTradeKind(myRes, actionCode);
+        }
+        // we have 3 MJs trade for BPS/BQN
+        else if(myRes->MJ >= 3) {
+            nextAction.actionCode = RETRAIN_STUDENTS;
+            nextAction.disciplineFrom = STUDENT_MJ;
+            nextAction.disciplineTo = getTradeKind(myRes, actionCode);
+        }
+        // we have 1 kind having 4 - trade
+        else if(getHowManySet(myRes, 4, actionCode) >= 1) {
+            nextAction.actionCode = RETRAIN_STUDENTS;
+            nextAction.disciplineFrom = getWhatSet(myRes, 4, actionCode); // what is the resource that has 4?
+            nextAction.disciplineTo = getTradeKind(myRes, actionCode);
+        }
+        // if all else failed - we can't trade all of the stuff in one go yet
+        else {
+            printf("> Can't trade for BPS/BQN yet...\n");
+            nextAction.actionCode = PASS;
+        } // end else        
+    } // end if OBTAIN_ARC
     return nextAction;
 }
 
@@ -467,22 +518,26 @@ action smartTrading (Res myRes, int actionCode) {
 int getTradeKind(Res r, int range) {
     int tradeKind = 0;
     int kind = 0;
-    int kind_end = 0;
+    int kindEnd = 0;
     // depending on the action we scan different ranges
     if(range == BUILD_CAMPUS) {
         kind = STUDENT_BPS; // from BPS
-        kind_end = STUDENT_MTV; // to MTV
+        kindEnd = STUDENT_MTV; // to MTV
+    }
+    else if(range == OBTAIN_ARC) {
+        kind = STUDENT_BPS; // from BPS
+        kindEnd = STUDENT_BQN; // to BQN
     }
     else if(range == NON_VOLATILE) {
         kind = STUDENT_BPS; // from BPS
-        kind_end = STUDENT_MJ; // to MJ
+        kindEnd = STUDENT_MJ; // to MJ
     }
     else { // START_SPINOFF
         kind = STUDENT_MJ; // from MJ
-        kind_end = STUDENT_MMONEY; // to MMONEY
+        kindEnd = STUDENT_MMONEY; // to MMONEY
     }
     // trade for the first required kind
-    while(kind <= kind_end && tradeKind == 0) {
+    while(kind <= kindEnd && tradeKind == 0) {
         if(r->pack[kind] < 1) {
             tradeKind = kind;
         }
@@ -492,11 +547,25 @@ int getTradeKind(Res r, int range) {
 }
 
 // gets how many of the kinds have the requested amount of units
-// for BUILD_CAMPUS smartTrading only!
-int getHowManySet(Res r, int amount) {
+// out of range given
+int getHowManySet(Res r, int amount, int range) {
     int count = 0;
     int kind = 1;
-    while(kind < STUDENT_MMONEY && count < 2) {
+    int kindEnd = 0;
+    // depending on the action we scan different ranges
+    if(range == BUILD_CAMPUS) {
+        kind = STUDENT_BPS; // from BPS
+        kindEnd = STUDENT_MTV; // to MTV
+    }
+    else if(range == OBTAIN_ARC) {
+        kind = STUDENT_BPS; // from BPS
+        kindEnd = STUDENT_BQN; // to BQN
+    }
+    else { // START_SPINOFF
+        kind = STUDENT_MJ; // from MJ
+        kindEnd = STUDENT_MMONEY; // to MMONEY
+    }    
+    while(kind <= kindEnd) {
         if(r->pack[kind] >= amount) {
             count++;
         }
@@ -506,12 +575,26 @@ int getHowManySet(Res r, int amount) {
 }
 
 // gets how many of the kinds have the requested amount of units
+// out of range given
 // excluding the one set in exclude
-// for BUILD_CAMPUS smartTrading only!
-int getHowManySetExcluding(Res r, int amount, int exclude) {
+int getHowManySetExcluding(Res r, int amount, int range, int exclude) {
     int count = 0;
     int kind = 1;
-    while(kind < STUDENT_MMONEY && count < 2) {
+    int kindEnd = 0;
+    // depending on the action we scan different ranges
+    if(range == BUILD_CAMPUS) {
+        kind = STUDENT_BPS; // from BPS
+        kindEnd = STUDENT_MTV; // to MTV
+    }
+    else if(range == OBTAIN_ARC) {
+        kind = STUDENT_BPS; // from BPS
+        kindEnd = STUDENT_BQN; // to BQN
+    }
+    else { // START_SPINOFF
+        kind = STUDENT_MJ; // from MJ
+        kindEnd = STUDENT_MMONEY; // to MMONEY
+    }    
+    while(kind <= kindEnd) {
         if(r->pack[kind] >= amount && kind != exclude) {
             count++;
         }
@@ -522,10 +605,24 @@ int getHowManySetExcluding(Res r, int amount, int exclude) {
 
 // gets which kind has the requested amount of units
 // for BUILD_CAMPUS smartTrading only!
-int getWhatSet(Res r, int amount) {
+int getWhatSet(Res r, int amount, int range) {
     int setKind = 0;
     int kind = 1;
-    while(kind < STUDENT_MMONEY && setKind == 0) {
+    int kindEnd = 0;
+    // depending on the action we scan different ranges
+    if(range == BUILD_CAMPUS) {
+        kind = STUDENT_BPS; // from BPS
+        kindEnd = STUDENT_MTV; // to MTV
+    }
+    else if(range == OBTAIN_ARC) {
+        kind = STUDENT_BPS; // from BPS
+        kindEnd = STUDENT_BQN; // to BQN
+    }
+    else if(range == START_SPINOFF) { // START_SPINOFF
+        kind = STUDENT_MJ; // from MJ
+        kindEnd = STUDENT_MMONEY; // to MMONEY
+    }    
+    while(kind <= kindEnd && setKind == 0) {
         if(r->pack[kind] >= amount) {
             setKind = kind;
         }
@@ -1067,6 +1164,145 @@ void testSmartTrading(Game g) {
     assert (newAction.actionCode == RETRAIN_STUDENTS);
     assert (newAction.disciplineFrom == STUDENT_MMONEY);
     assert (newAction.disciplineTo == STUDENT_BPS);
+
+    printf("[Test 2.11] - Have 0 BPS, 4 BQN, 4 MJ, 0 MTV, 2 MMONEY -> should retrain BQN to BPS\n");
+    myRes->BPS = 0;
+    myRes->BQN = 4;
+    myRes->MJ = 4;
+    myRes->MTV = 0;
+    myRes->MMONEY = 2;
+    newAction = smartTrading (myRes, BUILD_CAMPUS);
+    assert (newAction.actionCode == RETRAIN_STUDENTS);
+    assert (newAction.disciplineFrom == STUDENT_BQN);
+    assert (newAction.disciplineTo == STUDENT_BPS);
+    
+    printf("[Test 2.12] - Have all resources - should BUILD_CAMPUS\n");
+    myRes->BPS = 1;
+    myRes->BQN = 2;
+    myRes->MJ = 2;
+    myRes->MTV = 2;
+    myRes->MMONEY = 0;
+    newAction = smartTrading (myRes, BUILD_CAMPUS);
+    assert (newAction.actionCode == BUILD_CAMPUS);    
+    
+    printf("[Testing] smartTrading for OBTAIN_ARC\n");
+
+    printf("[Test 2.0] - Have >3 MMONEY - should retrain for BPS\n");
+    myRes->BPS = 0;
+    myRes->BQN = 0;
+    myRes->MJ = 2;
+    myRes->MTV = 1;
+    myRes->MMONEY = 4;
+    newAction = smartTrading (myRes, OBTAIN_ARC);
+    assert (newAction.actionCode == RETRAIN_STUDENTS);
+    assert (newAction.disciplineFrom == STUDENT_MMONEY);
+    assert (newAction.disciplineTo == STUDENT_BPS);
+
+    printf("[Test 2.1] - Have 3 MTV - should retrain for BPS\n");
+    myRes->BPS = 0;
+    myRes->BQN = 0;
+    myRes->MJ = 2;
+    myRes->MTV = 3;
+    myRes->MMONEY = 1;
+    newAction = smartTrading (myRes, OBTAIN_ARC);
+    assert (newAction.actionCode == RETRAIN_STUDENTS);
+    assert (newAction.disciplineFrom == STUDENT_MTV);
+    assert (newAction.disciplineTo == STUDENT_BPS);
+
+    printf("[Test 2.2] - Have 3 MJ - should retrain for BPS\n");
+    myRes->BPS = 0;
+    myRes->BQN = 0;
+    myRes->MJ = 3;
+    myRes->MTV = 2;
+    myRes->MMONEY = 1;
+    newAction = smartTrading (myRes, OBTAIN_ARC);
+    assert (newAction.actionCode == RETRAIN_STUDENTS);
+    assert (newAction.disciplineFrom == STUDENT_MJ);
+    assert (newAction.disciplineTo == STUDENT_BPS);
+
+    printf("[Test 2.3] - Have 3 MMONEY but 1 BPS - should retrain for BQN\n");
+    myRes->BPS = 1;
+    myRes->BQN = 0;
+    myRes->MJ = 2;
+    myRes->MTV = 2;
+    myRes->MMONEY = 3;
+    newAction = smartTrading (myRes, OBTAIN_ARC);
+    assert (newAction.actionCode == RETRAIN_STUDENTS);
+    assert (newAction.disciplineFrom == STUDENT_MMONEY);
+    assert (newAction.disciplineTo == STUDENT_BQN);
+
+    printf("[Test 2.4] - Have 3 MTV but 1 BPS - should retrain for BQN\n");
+    myRes->BPS = 1;
+    myRes->BQN = 0;
+    myRes->MJ = 2;
+    myRes->MTV = 3;
+    myRes->MMONEY = 1;
+    newAction = smartTrading (myRes, OBTAIN_ARC);
+    assert (newAction.actionCode == RETRAIN_STUDENTS);
+    assert (newAction.disciplineFrom == STUDENT_MTV);
+    assert (newAction.disciplineTo == STUDENT_BQN);
+
+    printf("[Test 2.5] - Have 3 MJ but 1 BPS - should retrain for BQN\n");
+    myRes->BPS = 1;
+    myRes->BQN = 0;
+    myRes->MJ = 3;
+    myRes->MTV = 2;
+    myRes->MMONEY = 1;
+    newAction = smartTrading (myRes, OBTAIN_ARC);
+    assert (newAction.actionCode == RETRAIN_STUDENTS);
+    assert (newAction.disciplineFrom == STUDENT_MJ);
+    assert (newAction.disciplineTo == STUDENT_BQN);
+
+    printf("[Test 2.6] - Have 4 BPS but 0 BQN - should retrain for BQN\n");
+    myRes->BPS = 4;
+    myRes->BQN = 0;
+    myRes->MJ = 2;
+    myRes->MTV = 2;
+    myRes->MMONEY = 2;
+    newAction = smartTrading (myRes, OBTAIN_ARC);
+    assert (newAction.actionCode == RETRAIN_STUDENTS);
+    assert (newAction.disciplineFrom == STUDENT_BPS);
+    assert (newAction.disciplineTo == STUDENT_BQN);
+
+    printf("[Test 2.7] - Have 4 BPS and 3 MMONEYs but 0 BQN - should retrain MMONEY for BQN\n");
+    myRes->BPS = 4;
+    myRes->BQN = 0;
+    myRes->MJ = 2;
+    myRes->MTV = 2;
+    myRes->MMONEY = 3;
+    newAction = smartTrading (myRes, OBTAIN_ARC);
+    assert (newAction.actionCode == RETRAIN_STUDENTS);
+    assert (newAction.disciplineFrom == STUDENT_MMONEY);
+    assert (newAction.disciplineTo == STUDENT_BQN);
+
+    printf("[Test 2.8] - Have 4 BQN but 0 BPS - should retrain BQN for BPS\n");
+    myRes->BPS = 0;
+    myRes->BQN = 4;
+    myRes->MJ = 2;
+    myRes->MTV = 2;
+    myRes->MMONEY = 1;
+    newAction = smartTrading (myRes, OBTAIN_ARC);
+    assert (newAction.actionCode == RETRAIN_STUDENTS);
+    assert (newAction.disciplineFrom == STUDENT_BQN);
+    assert (newAction.disciplineTo == STUDENT_BPS);
+
+    printf("[Test 2.9] - Have 3 BQN but 0 BPS - should PASS\n");
+    myRes->BPS = 0;
+    myRes->BQN = 3;
+    myRes->MJ = 2;
+    myRes->MTV = 2;
+    myRes->MMONEY = 1;
+    newAction = smartTrading (myRes, OBTAIN_ARC);
+    assert (newAction.actionCode == PASS);
+
+    printf("[Test 2.10] - Have 1 BQN and 2 BPS - should OBTAIN_ARC\n");
+    myRes->BPS = 1;
+    myRes->BQN = 2;
+    myRes->MJ = 2;
+    myRes->MTV = 2;
+    myRes->MMONEY = 1;
+    newAction = smartTrading (myRes, OBTAIN_ARC);
+    assert (newAction.actionCode == OBTAIN_ARC);    
     
     printf("testSmartTrading end\n");
 }
