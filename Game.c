@@ -21,7 +21,8 @@ Possible game struct
 #define NUM_DISCIPLINES 6
 #define MAX_REGIONS_PER_POINT 3
 
-#define START_DIFF 0
+#define NO_DIFF 0
+#define START_DIFF 3
 #define COL_INC 1
 #define COL_DEC 2
 #define ROW_INC 3
@@ -890,7 +891,8 @@ static point pathToPoint(path givenPath) {
 
     int i = 0;
     while (givenPath[i] != '\0') {
-        //printf("Path to point while loop entered\n");
+        printf("Path to point while loop entered\n");
+        printf(" [%c] ", givenPath[i]);
         if (!(givenPath[i] == 'L' || givenPath[i] == 'R'
             || givenPath[i] == 'B')) {
             newPoint.x = -1;
@@ -908,7 +910,7 @@ static point pathToPoint(path givenPath) {
                     diff = ROW_INC;
                 }
             }
-        //printf("Path to point while loop finished\n");
+            printf("Path to point while loop finished\n");
         }
         i++;
     }
@@ -917,15 +919,18 @@ static point pathToPoint(path givenPath) {
 
 // converts a given path to the edge's coordinates
 static edge pathToEdgeF(path givenPath) {
-    //printf("Entered pathToEdgeF function\n");
+    printf("Entered pathToEdgeF function\n");
     point newPoint;
     newPoint.x = 2;
     newPoint.y = 0;
     int diff = START_DIFF;
 
     int i = 0;
+    if(givenPath[i] == '\0' || strlen(givenPath) < 1) {
+        diff = NO_DIFF;
+    }
     while (givenPath[i] != '\0') {
-        //printf("Converting path to edge coords\n");
+        printf("Converting path to edge coords\n");
         assert(givenPath[i] == 'L'
             || givenPath[i] == 'R'
             || givenPath[i] == 'B');
@@ -960,8 +965,8 @@ static edge pathToEdgeF(path givenPath) {
     // this will never be reached because START_DIFF = ROW_INC
     // is that ok?
         printf("none works?\n");
-        newEdge.x = 0;
-        newEdge.y = 0;
+        newEdge.x = -1;
+        newEdge.y = -1;
     }
     return newEdge;
 }
@@ -1138,9 +1143,10 @@ static int validNewEdge(Game g, edge line, int player) {
     point points[4];
     int i = 0;
 
-    printf("Getting points in validNewEdge. Line x:%lf y:%lf\n", line.x, line.y);
+    printf("Getting points in validNewEdge. Line x:%d y:%d\n", (int)floor(x), (int)floor(y));
     // Get all possible points
-    if ((x >= 0) && (y >= 0)) {
+    // TODO: Moss here if you pass \0 or empty string no matter what it gives a Seg fault
+    if (((int)floor(x) >= 0) && ((int)floor(y) >= 0)) {        
         points[0] = * (g->gameBoard->points[(int)floor(x)][(int)floor(y)]);
         printf("Obtained a point\n");
         points[1] = *(g->gameBoard->points[(int)ceil(x)][(int)floor(y)]);
