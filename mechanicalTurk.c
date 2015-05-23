@@ -98,7 +98,7 @@
 #define FIRST_SIDE 1
 
 #define MAX_ATTEMPTS 5
-#define NUM_CAMPUS 3
+#define NUM_CAMPUS 4
 #define NON_VOLATILE 8
 
  
@@ -1104,15 +1104,19 @@ build buildDecider(Game g, int player){
         //Make any point we already own non-viable
         if (getCampus(g, stringParser(player, 1, 1)) == player) {
             point1 = 0;
+            point2 = 0;
         }
         if (getCampus(g, stringParser(player, 2, 1)) == player) {
             point2 = 0;
+            point1 = 0;
         }
         if (getCampus(g, stringParser(player, 1, 2)) == player) {
             point3 = 0;
+            point4 = 0;
         }
         if (getCampus(g, stringParser(player, 2, 2)) == player) {
             point4 = 0;
+            point3 = 0;
         }
         
         biggest = max(point1,point2);
