@@ -179,7 +179,6 @@ action decideAction (Game g) {
     // if(mj >= 1 && mm >= 1 && mtv >= 1) {
     
     int player = getWhoseTurn(g);
-    int attempts = 1;
     action nextAction;
     build decision;
     Res myRes;
@@ -190,10 +189,8 @@ action decideAction (Game g) {
         decision = buildDecider(g, player);
         char *pathCampus = stringParser(player,
                                         decision.point, decision.side);
-        if ((getCampus(g,pathCampus) != player) &&
-            (attempts <= MAX_ATTEMPTS)) {
+        if (getCampus(g,pathCampus) != player) {
             //Thought 1 We start buiilding
-            printf("Attempt: %d",attempts);
             nextAction = dumbBuilding(pathCampus, g, decision.point);
             nextAction = smartTrading(myRes, nextAction.actionCode);
             
