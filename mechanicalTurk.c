@@ -101,7 +101,21 @@
 #define NUM_CAMPUS 4
 #define NON_VOLATILE 8
 
- 
+//Probailities of Dice rolls
+#define TWO 0.0278
+#define THREE 0.0556
+#define FOUR 0.0833
+#define FIVE 0.1111
+#define SIX 0.1389
+#define SEVEN 0.1667
+#define EIGHT 0.1389
+#define NINE 0.1111
+#define TEN 0.0833
+#define ELEVEN 0.0556
+#define TWELVE 0.0278
+
+#define EPS 0.000000000001
+
 #define DEFAULT_DISCIPLINES {STUDENT_BQN, STUDENT_MMONEY, STUDENT_MJ, \
                 STUDENT_MMONEY, STUDENT_MJ, STUDENT_BPS, STUDENT_MTV, \
                 STUDENT_MTV, STUDENT_BPS,STUDENT_MTV, STUDENT_BQN, \
@@ -146,12 +160,13 @@ build buildDecider(Game g, int player);
 void testRegionRanker(void);
 int regionRanker(int Discipline);
 void testBuildDecider(Game g);
-int max(int num1, int num2);
+double max(double num1, double num2);
 int getTradeKind(Res r, int range);
 int getHowManySet(Res r, int amount, int range);
 int getHowManySetExcluding(Res r, int amount, int range, int exclude);
 int getWhatSet(Res r, int amount, int range);
 action dumbTradingSmartBuilding(Res r, int student, int actionCode);
+double diceToProb(int dice);
 
 action decideAction (Game g) {
 
@@ -180,40 +195,8 @@ action decideAction (Game g) {
             //Thought 1 We start buiilding
             printf("Attempt: %d",attempts);
             nextAction = dumbBuilding(pathCampus, g, decision.point);
-            //Check if we have enough resoures for this action.
+            nextAction = smartTrading(myRes, nextAction.actionCode);
             
-            if (nextAction.actionCode == OBTAIN_ARC &&
-                myRes->BPS > 0 &&
-                myRes->BQN > 0) {
-                printf("Enough Resources to build ARC\n");
-                //Not enough resources. Try to trade
-            } else if (myRes->BPS == 0){
-                nextAction = dumbTradingSmartBuilding(myRes,
-                                                STUDENT_BPS, OBTAIN_ARC);
-            } else if (myRes->BQN == 0){
-                nextAction = dumbTradingSmartBuilding(myRes,
-                                                STUDENT_BQN, OBTAIN_ARC);
-                
-            } else if (nextAction.actionCode == BUILD_CAMPUS &&
-                myRes->BPS > 0 && myRes->BQN > 0 && myRes->MJ > 0 &&
-                myRes->MTV > 0) {
-                printf("Enough Resources to build Campus\n");
-                
-            } else if (myRes->BPS == 0){
-                nextAction = dumbTradingSmartBuilding(myRes,
-                                                STUDENT_BPS, OBTAIN_ARC);
-            } else if (myRes->BQN == 0){
-                nextAction = dumbTradingSmartBuilding(myRes,
-                                                STUDENT_BQN, OBTAIN_ARC);
-            } else if (myRes->MJ == 0){
-                nextAction = dumbTradingSmartBuilding(myRes,
-                                                STUDENT_MJ, OBTAIN_ARC);
-            } else if (myRes->MTV == 0){
-                nextAction = dumbTradingSmartBuilding(myRes,
-                                                STUDENT_MTV, OBTAIN_ARC);
-            }
-            
-            //Check everything is legal
             if (isLegalAction(g, nextAction) != TRUE){
                 printf("Action isn't Legal\n");
                 nextAction.actionCode = PASS;
@@ -230,7 +213,7 @@ action decideAction (Game g) {
     return nextAction;
 }
 
-
+/*
 int main (int argc, char *argv[]) {
     
     int disciplines[] = DEFAULT_DISCIPLINES;
@@ -252,7 +235,7 @@ int main (int argc, char *argv[]) {
 
     return EXIT_SUCCESS;
 }
-
+*/
 
 // Trades Only whenever enough to complete action succesfully
 action smartTrading (Res myRes, int actionCode) {
@@ -1310,32 +1293,45 @@ void testSmartTrading(Game g) {
 // This function returns whether to build point at vertice 1|2 at A|B
 build buildDecider(Game g, int player){
     build decision;
-    int point1 = 0;
-    int point2 = 0;
-    int point3 = 0;
-    int point4 = 0;
-    int biggest = 0;
+    double point1 = 0;
+    double point2 = 0;
+    double point3 = 0;
+    double point4 = 0;
+    double biggest = 0;
     
     if (player == 1) {
         //Get the value for the first point
-        point1 = regionRanker(getDiscipline(g, PLAYER_1_VERT_1A1)) +
-        regionRanker(getDiscipline(g, PLAYER_1_VERT_1A2)) +
-        regionRanker(getDiscipline(g, PLAYER_1_VERT_1A3));
+        //Get the value for the first point
+        point1 = (regionRanker(getDiscipline(g, PLAYER_1_VERT_1A1)) *
+                  diceToProb(getDiceValue(g, PLAYER_1_VERT_1A1))) +
+        (regionRanker(getDiscipline(g, PLAYER_1_VERT_1A2)) *
+         diceToProb(getDiceValue(g, PLAYER_1_VERT_1A2))) +
+        (regionRanker(getDiscipline(g, PLAYER_1_VERT_1A3)) *
+         diceToProb(getDiceValue(g, PLAYER_1_VERT_1A3)));
         
         //And the second
-        point2 = regionRanker(getDiscipline(g, PLAYER_1_VERT_2A1)) +
-        regionRanker(getDiscipline(g, PLAYER_1_VERT_2A2)) +
-        regionRanker(getDiscipline(g, PLAYER_1_VERT_2A3));
+        point2 = (regionRanker(getDiscipline(g, PLAYER_1_VERT_2A1)) *
+                  diceToProb(getDiceValue(g, PLAYER_1_VERT_2A1))) +
+        (regionRanker(getDiscipline(g, PLAYER_1_VERT_2A2)) *
+         diceToProb(getDiceValue(g, PLAYER_1_VERT_2A2))) +
+        (regionRanker(getDiscipline(g, PLAYER_1_VERT_2A3)) *
+         diceToProb(getDiceValue(g, PLAYER_1_VERT_2A3)));
         
         //And the third
-        point3 = regionRanker(getDiscipline(g, PLAYER_1_VERT_1B1)) +
-        regionRanker(getDiscipline(g, PLAYER_1_VERT_1B2)) +
-        regionRanker(getDiscipline(g, PLAYER_1_VERT_1B3));
+        point3 = (regionRanker(getDiscipline(g, PLAYER_1_VERT_1B1)) *
+                  diceToProb(getDiceValue(g, PLAYER_1_VERT_1B1))) +
+        (regionRanker(getDiscipline(g, PLAYER_1_VERT_1B2)) *
+         diceToProb(getDiceValue(g, PLAYER_1_VERT_1B2))) +
+        (regionRanker(getDiscipline(g, PLAYER_1_VERT_1B3)) *
+         diceToProb(getDiceValue(g, PLAYER_1_VERT_1B3)));
         
         //And the fourth
-        point4 = regionRanker(getDiscipline(g, PLAYER_1_VERT_2B1)) +
-        regionRanker(getDiscipline(g, PLAYER_1_VERT_2B2)) +
-        regionRanker(getDiscipline(g, PLAYER_1_VERT_2B3));
+        point4 = (regionRanker(getDiscipline(g, PLAYER_1_VERT_2B1)) *
+                  diceToProb(getDiceValue(g, PLAYER_1_VERT_2B1))) +
+        (regionRanker(getDiscipline(g, PLAYER_1_VERT_2B2)) *
+         diceToProb(getDiceValue(g, PLAYER_1_VERT_2B2))) +
+        (regionRanker(getDiscipline(g, PLAYER_1_VERT_2B3)) *
+         diceToProb(getDiceValue(g, PLAYER_1_VERT_2B3)));
         
         //Make any point we already own non-viable
         if (getCampus(g, stringParser(player, 1, 1)) == player) {
@@ -1354,134 +1350,171 @@ build buildDecider(Game g, int player){
             point4 = 0;
             point3 = 0;
         }
-        
+
         biggest = max(point1,point2);
         biggest = max(biggest, point3);
         biggest = max(biggest, point4);
-        printf("Biggest: %d\n", biggest);
+        
+        printf("Biggest: %f\n", biggest);
 
         
-        if (point1 == biggest){
+        if (fabs(point1 - biggest) < EPS){
             decision.point = 1;
             decision.side = 1;
-        } else if (point2 == biggest) {
+        } else if (fabs(point2 - biggest) < EPS) {
             decision.point = 2;
             decision.side = 1;
-        } else if (point3 == biggest) {
+        } else if (fabs(point3 - biggest) < EPS) {
             decision.point = 1;
             decision.side = 2;
-        } else if (point4 == biggest) {
+        } else if (fabs(point4 - biggest) < EPS) {
             decision.point = 2;
             decision.side = 2;
         }
     } else if (player == 2) {
         //Get the value for the first point
-        point1 = regionRanker(getDiscipline(g, PLAYER_2_VERT_1A1)) +
-        regionRanker(getDiscipline(g, PLAYER_2_VERT_1A2)) +
-        regionRanker(getDiscipline(g, PLAYER_2_VERT_1A3));
+        //Get the value for the first point
+        point1 = (regionRanker(getDiscipline(g, PLAYER_2_VERT_1A1)) *
+                  diceToProb(getDiceValue(g, PLAYER_2_VERT_1A1))) +
+        (regionRanker(getDiscipline(g, PLAYER_2_VERT_1A2)) *
+         diceToProb(getDiceValue(g, PLAYER_2_VERT_1A2))) +
+        (regionRanker(getDiscipline(g, PLAYER_2_VERT_1A3)) *
+         diceToProb(getDiceValue(g, PLAYER_2_VERT_1A3)));
         
         //And the second
-        point2 = regionRanker(getDiscipline(g, PLAYER_2_VERT_2A1)) +
-        regionRanker(getDiscipline(g, PLAYER_2_VERT_2A2)) +
-        regionRanker(getDiscipline(g, PLAYER_2_VERT_2A3));
+        point2 = (regionRanker(getDiscipline(g, PLAYER_2_VERT_2A1)) *
+                  diceToProb(getDiceValue(g, PLAYER_2_VERT_2A1))) +
+        (regionRanker(getDiscipline(g, PLAYER_2_VERT_2A2)) *
+         diceToProb(getDiceValue(g, PLAYER_2_VERT_2A2))) +
+        (regionRanker(getDiscipline(g, PLAYER_2_VERT_2A3)) *
+         diceToProb(getDiceValue(g, PLAYER_2_VERT_2A3)));
         
         //And the third
-        point3 = regionRanker(getDiscipline(g, PLAYER_2_VERT_1B1)) +
-        regionRanker(getDiscipline(g, PLAYER_2_VERT_1B2)) +
-        regionRanker(getDiscipline(g, PLAYER_2_VERT_1B3));
+        point3 = (regionRanker(getDiscipline(g, PLAYER_2_VERT_1B1)) *
+                  diceToProb(getDiceValue(g, PLAYER_2_VERT_1B1))) +
+        (regionRanker(getDiscipline(g, PLAYER_2_VERT_1B2)) *
+         diceToProb(getDiceValue(g, PLAYER_2_VERT_1B2))) +
+        (regionRanker(getDiscipline(g, PLAYER_2_VERT_1B3)) *
+         diceToProb(getDiceValue(g, PLAYER_2_VERT_1B3)));
         
         //And the fourth
-        point4 = regionRanker(getDiscipline(g, PLAYER_2_VERT_2B1)) +
-        regionRanker(getDiscipline(g, PLAYER_2_VERT_2B2)) +
-        regionRanker(getDiscipline(g, PLAYER_2_VERT_2B3));
+        point4 = (regionRanker(getDiscipline(g, PLAYER_2_VERT_2B1)) *
+                  diceToProb(getDiceValue(g, PLAYER_2_VERT_2B1))) +
+        (regionRanker(getDiscipline(g, PLAYER_2_VERT_2B2)) *
+         diceToProb(getDiceValue(g, PLAYER_2_VERT_2B2))) +
+        (regionRanker(getDiscipline(g, PLAYER_2_VERT_2B3)) *
+         diceToProb(getDiceValue(g, PLAYER_2_VERT_2B3)));
         
         //Make any point we already own non-viable
         if (getCampus(g, stringParser(player, 1, 1)) == player) {
             point1 = 0;
+            point2 = 0;
         }
         if (getCampus(g, stringParser(player, 2, 1)) == player) {
             point2 = 0;
+            point1 = 0;
         }
         if (getCampus(g, stringParser(player, 1, 2)) == player) {
             point3 = 0;
+            point4 = 0;
         }
         if (getCampus(g, stringParser(player, 2, 2)) == player) {
             point4 = 0;
+            point3 = 0;
         }
         
         biggest = max(point1,point2);
         biggest = max(biggest, point3);
         biggest = max(biggest, point4);
-        printf("Biggest: %d\n", biggest);
+        printf("Biggest: %f\n", biggest);
 
-        if (point1 == biggest){
+        if (fabs(point1 - biggest) < EPS){
             decision.point = 1;
             decision.side = 1;
-        } else if (point2 == biggest) {
+        } else if (fabs(point2 - biggest) < EPS) {
             decision.point = 2;
             decision.side = 1;
-        } else if (point3 == biggest) {
+        } else if (fabs(point3 - biggest) < EPS) {
             decision.point = 1;
             decision.side = 2;
-        } else if (point4 == biggest) {
+        } else if (fabs(point4 - biggest) < EPS) {
             decision.point = 2;
             decision.side = 2;
         }
+
         
     } else if (player == 3) {
         
         //Get the value for the first point
-        point1 = regionRanker(getDiscipline(g, PLAYER_3_VERT_1A1)) +
-        regionRanker(getDiscipline(g, PLAYER_3_VERT_1A2)) +
-        regionRanker(getDiscipline(g, PLAYER_3_VERT_1A3));
+        //Get the value for the first point
+        point1 = (regionRanker(getDiscipline(g, PLAYER_3_VERT_1A1)) *
+                  diceToProb(getDiceValue(g, PLAYER_3_VERT_1A1))) +
+        (regionRanker(getDiscipline(g, PLAYER_3_VERT_1A2)) *
+         diceToProb(getDiceValue(g, PLAYER_3_VERT_1A2))) +
+        (regionRanker(getDiscipline(g, PLAYER_3_VERT_1A3)) *
+         diceToProb(getDiceValue(g, PLAYER_3_VERT_1A3)));
         
         //And the second
-        point2 = regionRanker(getDiscipline(g, PLAYER_3_VERT_2A1)) +
-        regionRanker(getDiscipline(g, PLAYER_3_VERT_2A2)) +
-        regionRanker(getDiscipline(g, PLAYER_3_VERT_2A3));
+        point2 = (regionRanker(getDiscipline(g, PLAYER_3_VERT_2A1)) *
+                  diceToProb(getDiceValue(g, PLAYER_3_VERT_2A1))) +
+        (regionRanker(getDiscipline(g, PLAYER_3_VERT_2A2)) *
+         diceToProb(getDiceValue(g, PLAYER_3_VERT_2A2))) +
+        (regionRanker(getDiscipline(g, PLAYER_3_VERT_2A3)) *
+         diceToProb(getDiceValue(g, PLAYER_3_VERT_2A3)));
         
         //And the third
-        point3 = regionRanker(getDiscipline(g, PLAYER_3_VERT_1B1)) +
-        regionRanker(getDiscipline(g, PLAYER_3_VERT_1B2)) +
-        regionRanker(getDiscipline(g, PLAYER_3_VERT_1B3));
+        point3 = (regionRanker(getDiscipline(g, PLAYER_3_VERT_1B1)) *
+                  diceToProb(getDiceValue(g, PLAYER_3_VERT_1B1))) +
+        (regionRanker(getDiscipline(g, PLAYER_3_VERT_1B2)) *
+         diceToProb(getDiceValue(g, PLAYER_3_VERT_1B2))) +
+        (regionRanker(getDiscipline(g, PLAYER_3_VERT_1B3)) *
+         diceToProb(getDiceValue(g, PLAYER_3_VERT_1B3)));
         
         //And the fourth
-        point4 = regionRanker(getDiscipline(g, PLAYER_3_VERT_2B1)) +
-        regionRanker(getDiscipline(g, PLAYER_3_VERT_2B2)) +
-        regionRanker(getDiscipline(g, PLAYER_3_VERT_2B3));
+        point4 = (regionRanker(getDiscipline(g, PLAYER_3_VERT_2B1)) *
+                  diceToProb(getDiceValue(g, PLAYER_3_VERT_2B1))) +
+        (regionRanker(getDiscipline(g, PLAYER_3_VERT_2B2)) *
+         diceToProb(getDiceValue(g, PLAYER_3_VERT_2B2))) +
+        (regionRanker(getDiscipline(g, PLAYER_3_VERT_2B3)) *
+         diceToProb(getDiceValue(g, PLAYER_3_VERT_2B3)));
         
         //Make any point we already own non-viable
         if (getCampus(g, stringParser(player, 1, 1)) == player) {
             point1 = 0;
+            point2 = 0;
         }
         if (getCampus(g, stringParser(player, 2, 1)) == player) {
             point2 = 0;
+            point1 = 0;
         }
         if (getCampus(g, stringParser(player, 1, 2)) == player) {
             point3 = 0;
+            point4 = 0;
         }
         if (getCampus(g, stringParser(player, 2, 2)) == player) {
             point4 = 0;
+            point3 = 0;
         }
         
         biggest = max(point1,point2);
         biggest = max(biggest, point3);
         biggest = max(biggest, point4);
-        printf("Biggest: %d\n", biggest);
+        printf("Biggest: %f\n", biggest);
 
-        if (point1 == biggest){
+        if (fabs(point1 - biggest) < EPS){
             decision.point = 1;
             decision.side = 1;
-        } else if (point2 == biggest) {
+        } else if (fabs(point2 - biggest) < EPS) {
             decision.point = 2;
             decision.side = 1;
-        } else if (point3 == biggest) {
+        } else if (fabs(point3 - biggest) < EPS) {
             decision.point = 1;
             decision.side = 2;
-        } else if (point4 == biggest) {
+        } else if (fabs(point4 - biggest) < EPS) {
             decision.point = 2;
             decision.side = 2;
         }
+
         
     } else {
         printf("Waring: Player Number out of bounds\n");
@@ -1521,6 +1554,34 @@ int regionRanker(int Discipline){
     return rank;
 }
 
+double diceToProb(int dice){
+    double prob = 0;
+    if (dice == 2) {
+        prob = TWO;
+    } else if (dice == 3) {
+        prob = THREE;
+    } else if (dice == 4) {
+        prob = FOUR;
+    } else if (dice == 5) {
+        prob = FIVE;
+    } else if (dice == 6) {
+        prob = SIX;
+    } else if (dice == 7) {
+        prob = SEVEN;
+    } else if (dice == 8) {
+        prob = EIGHT;
+    } else if (dice == 9) {
+        prob = NINE;
+    } else if (dice == 10) {
+        prob = TEN;
+    } else if (dice == 11) {
+        prob = ELEVEN;
+    } else if (dice == 12) {
+        prob = TWELVE;
+    }
+    return prob;
+}
+
 void testRegionRanker(void) {
     assert(regionRanker(STUDENT_BPS) == RANK_STUDENT_BPS);
     assert(regionRanker(STUDENT_BQN) == RANK_STUDENT_BQN);
@@ -1531,8 +1592,8 @@ void testRegionRanker(void) {
 }
 
 
-int max(int num1, int num2) {
-    int result;
+double max(double num1, double num2) {
+    double result;
     
     if (num1 > num2)
         result = num1;
